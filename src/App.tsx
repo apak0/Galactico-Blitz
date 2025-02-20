@@ -70,7 +70,7 @@ function App() {
       {
         id: Date.now(),
         x: shipPosition.x,
-        y: window.innerHeight - 100,
+        y: window.innerHeight - (getShipImage() === "/assets/spaces-ship-huge.png" ? 140 : 100),
       },
     ]);
   }, [shipPosition.x]);
@@ -223,6 +223,24 @@ function App() {
     return 20;
   };
 
+  const getShipImage = () => {
+    if (score >= 500) return "/assets/spaces-ship-huge.png";
+    if (score >= 200) return "/assets/spaces-ship-middle.png";
+    return "/assets/spaces-ship-small.png";
+  };
+
+  const getNextShipImage = () => {
+    if (score >= 500) return null; // No next level
+    if (score >= 200) return "/assets/spaces-ship-huge.png";
+    return "/assets/spaces-ship-middle.png";
+  };
+
+  const getScoreLevel = () => {
+    if (score >= 500) return "Huge Ship";
+    if (score >= 200) return "Middle Ship";
+    return "Small Ship";
+  };
+
   useEffect(() => {
     function start() {
       resize();
@@ -316,6 +334,20 @@ function App() {
         }`}
       >
         Score: {score}
+        <div className="text-lg font-normal">{getScoreLevel()}</div>
+        <div className="flex items-center space-x-2 mt-2">
+          <img src={getShipImage()} alt="Current Ship" className="w-6 h-6" />
+          {getNextShipImage() && (
+            <>
+              <span className="text-yellow-500 text-xl">→</span>
+              <img
+                src={getNextShipImage()}
+                alt="Next Ship"
+                className="w-6 h-6"
+              />
+            </>
+          )}
+        </div>
       </div>
 
       {/* Score Animations */}
@@ -340,7 +372,11 @@ function App() {
       )}
 
       {/* Ship */}
-      <Ship position={shipPosition} size={getShipSize()} />
+      <Ship
+        position={shipPosition}
+        size={getShipSize()}
+        image={getShipImage()}
+      />
 
       {/* Bullets */}
       {bullets.map((bullet) => (
