@@ -13,7 +13,7 @@ const Ship: React.FC<ShipProps> = ({ position, size }) => {
       className="absolute bottom-10 transform -translate-x-1/2"
       style={{ left: `${position.x}px`, width: `${scaledSize}px`, height: `${scaledSize}px` }}
     >
-      <img src="/assets/spaces-ship.png" alt="Spaceship" style={{ width: '100%', height: '100%' }} />
+      <img src="/assets/spaces-ship-small.png" alt="Spaceship" style={{ width: '100%', height: '100%' }} />
     </div>
   );
 };
