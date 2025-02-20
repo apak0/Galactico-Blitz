@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 interface ShipProps {
   position: { x: number };
@@ -6,34 +6,14 @@ interface ShipProps {
 }
 
 const Ship: React.FC<ShipProps> = ({ position, size }) => {
-  useEffect(() => {
-    const shipCanvas = document.getElementById('shipCanvas') as HTMLCanvasElement;
-    if (shipCanvas) {
-      const ctx = shipCanvas.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, size, size);
-        ctx.fillStyle = 'blue';
-        ctx.beginPath();
-        ctx.moveTo(size / 2, 0);
-        ctx.lineTo(size, size);
-        ctx.lineTo(size / 2, size * 0.8);
-        ctx.lineTo(0, size);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = 'white';
-        ctx.beginPath();
-        ctx.arc(size / 2, size * 0.6, size * 0.1, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-  }, [position, size]);
+  const scaledSize = size * 3; // Boyutu 3 katına çıkar
 
   return (
     <div
-      className="absolute bottom-10 transform -translate-x-1/2 text-blue-500"
-      style={{ left: `${position.x}px` }}
+      className="absolute bottom-10 transform -translate-x-1/2"
+      style={{ left: `${position.x}px`, width: `${scaledSize}px`, height: `${scaledSize}px` }}
     >
-      <canvas id="shipCanvas" width={size} height={size} />
+      <img src="/assets/spaces-ship.png" alt="Spaceship" style={{ width: '100%', height: '100%' }} />
     </div>
   );
 };

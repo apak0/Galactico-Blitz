@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import Ship from './Ship';
-import Bullet from './Bullet';
-import Enemy from './Enemy';
-import ScoreAnimation from './ScoreAnimation';
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import Ship from "./Ship";
+import Bullet from "./Bullet";
+import Enemy from "./Enemy";
+import ScoreAnimation from "./ScoreAnimation";
 
 interface Position {
   x: number;
@@ -26,7 +26,9 @@ interface ScoreAnimation {
 }
 
 function App() {
-  const [shipPosition, setShipPosition] = useState({ x: window.innerWidth / 2 });
+  const [shipPosition, setShipPosition] = useState({
+    x: window.innerWidth / 2,
+  });
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
   const [score, setScore] = useState(0);
@@ -34,7 +36,7 @@ function App() {
   const [timeLeft, setTimeLeft] = useState(60);
   const [scoreAnimations, setScoreAnimations] = useState<ScoreAnimation[]>([]);
   const [isScoreDecreasing, setIsScoreDecreasing] = useState(false);
-  
+
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const animationFrameId = useRef<number>();
   const animationCounter = useRef(0);
@@ -49,10 +51,10 @@ function App() {
       let newX = prev.x;
       const moveSpeed = 8;
 
-      if (keysPressed.current['ArrowLeft']) {
+      if (keysPressed.current["ArrowLeft"]) {
         newX = Math.max(30, prev.x - moveSpeed);
       }
-      if (keysPressed.current['ArrowRight']) {
+      if (keysPressed.current["ArrowRight"]) {
         newX = Math.min(window.innerWidth - 30, prev.x + moveSpeed);
       }
 
@@ -63,22 +65,28 @@ function App() {
   }, []);
 
   const shoot = useCallback(() => {
-    setBullets(prev => [...prev, {
-      id: Date.now(),
-      x: shipPosition.x,
-      y: window.innerHeight - 100
-    }]);
+    setBullets((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        x: shipPosition.x,
+        y: window.innerHeight - 100,
+      },
+    ]);
   }, [shipPosition.x]);
 
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if (gameOver) return;
-    
-    keysPressed.current[event.key] = true;
-    
-    if (event.key === ' ') {
-      shoot();
-    }
-  }, [gameOver, shoot]);
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (gameOver) return;
+
+      keysPressed.current[event.key] = true;
+
+      if (event.key === " ") {
+        shoot();
+      }
+    },
+    [gameOver, shoot]
+  );
 
   const handleKeyUp = useCallback((event: KeyboardEvent) => {
     delete keysPressed.current[event.key];
@@ -89,7 +97,7 @@ function App() {
     if (gameOver) return;
 
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
+      setTimeLeft((prev) => {
         if (prev <= 0) {
           setGameOver(true);
           return 0;
@@ -103,13 +111,13 @@ function App() {
 
   // Keyboard controls
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
     animationFrameId.current = requestAnimationFrame(moveShip);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
       }
@@ -122,28 +130,31 @@ function App() {
 
     const gameLoop = setInterval(() => {
       // Move bullets
-      setBullets(prev => 
+      setBullets((prev) =>
         prev
-          .map(bullet => ({ ...bullet, y: bullet.y - 5 }))
-          .filter(bullet => bullet.y > 0)
+          .map((bullet) => ({ ...bullet, y: bullet.y - 5 }))
+          .filter((bullet) => bullet.y > 0)
       );
 
       // Move enemies
-      setEnemies(prev => {
+      setEnemies((prev) => {
         const newEnemies = prev
-          .map(enemy => ({ ...enemy, y: enemy.y + 2 }))
-          .filter(enemy => {
+          .map((enemy) => ({ ...enemy, y: enemy.y + 2 }))
+          .filter((enemy) => {
             if (enemy.y >= window.innerHeight) {
               // Enemy escaped, decrease score
-              setScore(s => s - 10);
+              setScore((s) => s - 10);
               setIsScoreDecreasing(true);
               setTimeout(() => setIsScoreDecreasing(false), 500);
-              setScoreAnimations(prev => [...prev, {
-                value: -10,
-                id: generateUniqueId(),
-                x: enemy.x,
-                y: window.innerHeight - 50
-              }]);
+              setScoreAnimations((prev) => [
+                ...prev,
+                {
+                  value: -20,
+                  id: generateUniqueId(),
+                  x: enemy.x,
+                  y: window.innerHeight - 50,
+                },
+              ]);
               return false;
             }
             return true;
@@ -155,7 +166,7 @@ function App() {
             id: Date.now(),
             x: Math.random() * (window.innerWidth - 60) + 30,
             y: 0,
-            hits: 0
+            hits: 0,
           });
         }
 
@@ -163,24 +174,27 @@ function App() {
       });
 
       // Check collisions
-      setBullets(prev => {
+      setBullets((prev) => {
         const remainingBullets = [...prev];
-        setEnemies(prevEnemies => {
-          const remainingEnemies = prevEnemies.filter(enemy => {
+        setEnemies((prevEnemies) => {
+          const remainingEnemies = prevEnemies.filter((enemy) => {
             const hitByBullet = remainingBullets.some((bullet, bulletIndex) => {
               if (
                 Math.abs(bullet.x - enemy.x) < 30 &&
                 Math.abs(bullet.y - enemy.y) < 30
               ) {
-                remainingBullets.splice(bulletIndex, 1);
-                setScore(s => s + 10);
-                setScoreAnimations(prev => [...prev, {
-                  value: 10,
-                  id: generateUniqueId(),
-                  x: enemy.x,
-                  y: enemy.y
-                }]);
-                return false;
+                remainingBullets.splice(bulletIndex, 1); // Remove bullet
+                setScore((s) => s + 10);
+                setScoreAnimations((prev) => [
+                  ...prev,
+                  {
+                    value: 20,
+                    id: generateUniqueId(),
+                    x: enemy.x,
+                    y: enemy.y,
+                  },
+                ]);
+                return true; // Mark enemy as hit
               }
               return false;
             });
@@ -192,9 +206,9 @@ function App() {
       });
 
       // Clean up old score animations
-      setScoreAnimations(prev => 
-        prev.filter(animation => {
-          const [timestamp] = animation.id.split('-');
+      setScoreAnimations((prev) =>
+        prev.filter((animation) => {
+          const [timestamp] = animation.id.split("-");
           return Date.now() - parseInt(timestamp) < 1000;
         })
       );
@@ -209,9 +223,86 @@ function App() {
     return 20;
   };
 
+  useEffect(() => {
+    function start() {
+      resize();
+      anim();
+    }
+    function resize() {
+      w = parseInt(document.documentElement.clientWidth.toString());
+      h = parseInt(document.documentElement.clientHeight.toString());
+      x = Math.round(w / 2);
+      y = Math.round(h / 2);
+      z = (w + h) / 2;
+      star_color_ratio = 1 / z;
+      cursor_x = x;
+      cursor_y = y;
+      init();
+    }
+    function init() {
+      for (let t = 0; t < n; t++) {
+        star[t] = new Array(5);
+        star[t][0] = Math.random() * w * 2 - 2 * x;
+        star[t][1] = Math.random() * h * 2 - 2 * y;
+        star[t][2] = Math.round(Math.random() * z);
+        star[t][3] = 0;
+        star[t][4] = 0;
+      }
+
+      r.width = w;
+      r.height = h;
+      context = r.getContext("2d")!;
+      context.fillStyle = "rgb(0,0,0)";
+      context.strokeStyle = "rgb(0,255,255)";
+    }
+    function anim() {
+      context.fillRect(0, 0, w, h);
+
+      for (let t = 0; t < n; t++) {
+        star_x_save = star[t][3];
+        star_y_save = star[t][4];
+        star[t][2] -= star_speed;
+        if (star[t][2] < 0) {
+          star[t][2] += z;
+        }
+        star[t][3] = x + (star[t][0] / star[t][2]) * star_ratio;
+        star[t][4] = y + (star[t][1] / star[t][2]) * star_ratio;
+        context.lineWidth = 2 * (1 - star_color_ratio * star[t][2]);
+        context.beginPath();
+        context.moveTo(star_x_save, star_y_save);
+        context.lineTo(star[t][3], star[t][4]);
+        context.stroke();
+        context.closePath();
+      }
+      requestAnimationFrame(anim);
+    }
+    let r = document.getElementById("field") as HTMLCanvasElement;
+    let n = 812;
+    let w = 0;
+    let h = 0;
+    let x = 0;
+    let y = 0;
+    let z = 0;
+    let star_color_ratio = 0;
+    let star_x_save: number;
+    let star_y_save: number;
+    let star_ratio = 115;
+    let star_speed = 0.5;
+    let star: number[][] = new Array(n);
+    let cursor_x = 0;
+    let cursor_y = 0;
+    let context: CanvasRenderingContext2D;
+    start();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
+
   return (
     <div className="relative w-screen h-screen bg-black overflow-hidden">
-      <canvas id="field" className="absolute inset-0 z-0 pointer-events-none"></canvas>
+      <canvas
+        id="field"
+        className="absolute inset-0 z-0 pointer-events-none"
+      ></canvas>
 
       {/* Timer */}
       <div className="absolute top-4 right-4 text-white text-xl font-bold">
@@ -219,14 +310,16 @@ function App() {
       </div>
 
       {/* Score */}
-      <div className={`absolute top-4 left-4 text-2xl font-bold transition-all duration-500 ${
-        isScoreDecreasing ? 'text-red-500' : 'text-white'
-      }`}>
+      <div
+        className={`absolute top-4 left-4 text-2xl font-bold transition-all duration-500 ${
+          isScoreDecreasing ? "text-red-500" : "text-white"
+        }`}
+      >
         Score: {score}
       </div>
 
       {/* Score Animations */}
-      {scoreAnimations.map(animation => (
+      {scoreAnimations.map((animation) => (
         <ScoreAnimation key={animation.id} animation={animation} />
       ))}
 
@@ -250,12 +343,12 @@ function App() {
       <Ship position={shipPosition} size={getShipSize()} />
 
       {/* Bullets */}
-      {bullets.map(bullet => (
+      {bullets.map((bullet) => (
         <Bullet key={bullet.id} bullet={bullet} />
       ))}
 
       {/* Enemies */}
-      {enemies.map(enemy => (
+      {enemies.map((enemy) => (
         <Enemy key={enemy.id} enemy={enemy} />
       ))}
     </div>
