@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface BulletProps {
   bullet: { id: number; x: number; y: number };
@@ -11,7 +11,7 @@ const Bullet: React.FC<BulletProps> = ({ bullet }) => {
       style={{
         left: `${bullet.x}px`,
         top: `${bullet.y}px`,
-        transform: 'translate(-50%, -50%)'
+        transform: "translate(-50%, -50%)",
       }}
     />
   );

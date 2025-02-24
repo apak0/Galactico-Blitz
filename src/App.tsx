@@ -25,10 +25,63 @@ interface ScoreAnimation {
   y: number;
 }
 
+const useStarfield = (canvasId: string) => {
+  useEffect(() => {
+    const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+    const context = canvas.getContext("2d")!;
+    let w = window.innerWidth;
+    let h = window.innerHeight;
+    const n = 812;
+    const starRatio = 115;
+    const starSpeed = 0.5;
+    const stars = new Array(n).fill(0).map(() => [
+      Math.random() * w * 2 - w,
+      Math.random() * h * 2 - h,
+      Math.round(Math.random() * ((w + h) / 2)),
+      0,
+      0,
+    ]);
+
+    const resize = () => {
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = w;
+      canvas.height = h;
+    };
+
+    const animate = () => {
+      context.fillStyle = "rgb(0,0,0)";
+      context.fillRect(0, 0, w, h);
+      context.strokeStyle = "rgb(0,255,255)";
+
+      for (let i = 0; i < n; i++) {
+        const [x, y, z, prevX, prevY] = stars[i];
+        stars[i][2] -= starSpeed;
+        if (stars[i][2] < 0) stars[i][2] += (w + h) / 2;
+        stars[i][3] = w / 2 + (x / stars[i][2]) * starRatio;
+        stars[i][4] = h / 2 + (y / stars[i][2]) * starRatio;
+
+        context.lineWidth = 2 * (1 - 1 / ((w + h) / 2) * stars[i][2]);
+        context.beginPath();
+        context.moveTo(prevX, prevY);
+        context.lineTo(stars[i][3], stars[i][4]);
+        context.stroke();
+        context.closePath();
+      }
+
+      requestAnimationFrame(animate);
+    };
+
+    resize();
+    animate();
+    window.addEventListener("resize", resize);
+
+    return () => window.removeEventListener("resize", resize);
+  }, [canvasId]);
+};
+
 function App() {
-  const [shipPosition, setShipPosition] = useState({
-    x: window.innerWidth / 2,
-  });
+  const [shipPosition, setShipPosition] = useState({ x: window.innerWidth / 2 });
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
   const [score, setScore] = useState(0);
@@ -40,28 +93,11 @@ function App() {
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const animationFrameId = useRef<number>();
   const animationCounter = useRef(0);
+  const lastFrameTime = useRef<number>(performance.now());
 
   const generateUniqueId = useCallback(() => {
     animationCounter.current += 1;
     return `${Date.now()}-${animationCounter.current}`;
-  }, []);
-
-  const moveShip = useCallback(() => {
-    setShipPosition((prev) => {
-      let newX = prev.x;
-      const moveSpeed = 8;
-
-      if (keysPressed.current["ArrowLeft"]) {
-        newX = Math.max(30, prev.x - moveSpeed);
-      }
-      if (keysPressed.current["ArrowRight"]) {
-        newX = Math.min(window.innerWidth - 30, prev.x + moveSpeed);
-      }
-
-      return { x: newX };
-    });
-
-    animationFrameId.current = requestAnimationFrame(moveShip);
   }, []);
 
   const shoot = useCallback(() => {
@@ -78,12 +114,8 @@ function App() {
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (gameOver) return;
-
       keysPressed.current[event.key] = true;
-
-      if (event.key === " ") {
-        shoot();
-      }
+      if (event.key === " ") shoot();
     },
     [gameOver, shoot]
   );
@@ -92,75 +124,71 @@ function App() {
     delete keysPressed.current[event.key];
   }, []);
 
+  useStarfield("field");
+
   // Timer
   useEffect(() => {
     if (gameOver) return;
-
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 0) {
-          setGameOver(true);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft((prev) => (prev <= 0 ? (setGameOver(true), 0) : prev - 1));
     }, 1000);
-
     return () => clearInterval(timer);
   }, [gameOver]);
 
-  // Keyboard controls
-  useEffect(() => {
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
-    animationFrameId.current = requestAnimationFrame(moveShip);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
-      }
-    };
-  }, [handleKeyDown, handleKeyUp, moveShip]);
-
-  // Game loop
+  // Game loop with requestAnimationFrame
   useEffect(() => {
     if (gameOver) return;
 
-    const gameLoop = setInterval(() => {
+    const gameLoop = (currentTime: number) => {
+      const deltaTime = (currentTime - lastFrameTime.current) / 1000; // Seconds
+      lastFrameTime.current = currentTime;
+
+      // Move ship
+      setShipPosition((prev) => {
+        let newX = prev.x;
+        const moveSpeed = 8 / 0.016; // Eski 16ms baz alınarak sabit hız
+        if (keysPressed.current["ArrowLeft"]) {
+          newX = Math.max(30, prev.x - moveSpeed * deltaTime);
+        }
+        if (keysPressed.current["ArrowRight"]) {
+          newX = Math.min(window.innerWidth - 30, prev.x + moveSpeed * deltaTime);
+        }
+        return { x: newX };
+      });
+
       // Move bullets
       setBullets((prev) =>
         prev
-          .map((bullet) => ({ ...bullet, y: bullet.y - 5 }))
-          .filter((bullet) => bullet.y > 0)
+          .map((b) => ({ ...b, y: b.y - (5 / 0.016) * deltaTime })) // Eski hıza eşitle
+          .filter((b) => b.y > 0)
       );
 
-      // Move enemies
+      // Move enemies and check collision
       setEnemies((prev) => {
-        const newEnemies = prev
-          .map((enemy) => ({ ...enemy, y: enemy.y + 2 }))
-          .filter((enemy) => {
-            if (enemy.y >= window.innerHeight) {
-              // Enemy escaped, decrease score
+        let newEnemies = prev
+          .map((e) => ({ ...e, y: e.y + 2 * deltaTime / 0.016 })) // Eski hıza eşitle (2 piksel/16ms)
+          .filter((e) => {
+            if (e.y >= window.innerHeight) {
               setScore((s) => s - 10);
               setIsScoreDecreasing(true);
               setTimeout(() => setIsScoreDecreasing(false), 500);
               setScoreAnimations((prev) => [
                 ...prev,
-                {
-                  value: -20,
-                  id: generateUniqueId(),
-                  x: enemy.x,
-                  y: window.innerHeight - 50,
-                },
+                { value: -20, id: generateUniqueId(), x: e.x, y: window.innerHeight - 50 },
               ]);
+              return false;
+            }
+            const shipSize = getShipSize();
+            const shipY = window.innerHeight - (getShipImage() === "/assets/spaces-ship-huge.png" ? 140 : 100);
+            if (
+              Math.abs(e.x - shipPosition.x) < shipSize / 2 + 15 &&
+              Math.abs(e.y - shipY) < shipSize / 2 + 15
+            ) {
+              setGameOver(true);
               return false;
             }
             return true;
           });
-
-        // Add new enemy randomly
         if (Math.random() < 0.02) {
           newEnemies.push({
             id: Date.now(),
@@ -169,165 +197,78 @@ function App() {
             hits: 0,
           });
         }
-
         return newEnemies;
       });
 
-      // Check collisions
-      setBullets((prev) => {
-        const remainingBullets = [...prev];
+      // Bullet-enemy collision
+      setBullets((prevBullets) => {
+        const bulletsCopy = [...prevBullets];
         setEnemies((prevEnemies) => {
-          const remainingEnemies = prevEnemies.filter((enemy) => {
-            const hitByBullet = remainingBullets.some((bullet, bulletIndex) => {
+          const enemiesCopy = prevEnemies.map((e) => ({ ...e }));
+          bulletsCopy.forEach((bullet, bIndex) => {
+            enemiesCopy.forEach((enemy, eIndex) => {
               if (
                 Math.abs(bullet.x - enemy.x) < 30 &&
                 Math.abs(bullet.y - enemy.y) < 30
               ) {
-                remainingBullets.splice(bulletIndex, 1); // Remove bullet
+                bulletsCopy.splice(bIndex, 1);
+                enemiesCopy.splice(eIndex, 1);
                 setScore((s) => s + 10);
                 setScoreAnimations((prev) => [
                   ...prev,
-                  {
-                    value: 20,
-                    id: generateUniqueId(),
-                    x: enemy.x,
-                    y: enemy.y,
-                  },
+                  { value: 20, id: generateUniqueId(), x: enemy.x, y: enemy.y },
                 ]);
-                return true; // Mark enemy as hit
               }
-              return false;
             });
-            return !hitByBullet;
           });
-          return remainingEnemies;
+          return enemiesCopy;
         });
-        return remainingBullets;
+        return bulletsCopy;
       });
 
-      // Clean up old score animations
+      // Clean up score animations
       setScoreAnimations((prev) =>
-        prev.filter((animation) => {
-          const [timestamp] = animation.id.split("-");
-          return Date.now() - parseInt(timestamp) < 1000;
-        })
+        prev.filter((a) => Date.now() - parseInt(a.id.split("-")[0]) < 1000)
       );
-    }, 16);
 
-    return () => clearInterval(gameLoop);
-  }, [gameOver, generateUniqueId]);
+      animationFrameId.current = requestAnimationFrame(gameLoop);
+    };
 
-  const getShipSize = () => {
-    if (score >= 1000) return 60;
-    if (score >= 500) return 40;
-    return 20;
-  };
+    animationFrameId.current = requestAnimationFrame(gameLoop);
 
-  const getShipImage = () => {
-    if (score >= 500) return "/assets/spaces-ship-huge.png";
-    if (score >= 200) return "/assets/spaces-ship-middle.png";
-    return "/assets/spaces-ship-small.png";
-  };
+    return () => {
+      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+    };
+  }, [gameOver, generateUniqueId, shipPosition.x]);
 
-  const getNextShipImage = () => {
-    if (score >= 500) return null; // No next level
-    if (score >= 200) return "/assets/spaces-ship-huge.png";
-    return "/assets/spaces-ship-middle.png";
-  };
-
-  const getScoreLevel = () => {
-    if (score >= 500) return "Huge Ship";
-    if (score >= 200) return "Middle Ship";
-    return "Small Ship";
-  };
-
+  // Keyboard controls
   useEffect(() => {
-    function start() {
-      resize();
-      anim();
-    }
-    function resize() {
-      w = parseInt(document.documentElement.clientWidth.toString());
-      h = parseInt(document.documentElement.clientHeight.toString());
-      x = Math.round(w / 2);
-      y = Math.round(h / 2);
-      z = (w + h) / 2;
-      star_color_ratio = 1 / z;
-      cursor_x = x;
-      cursor_y = y;
-      init();
-    }
-    function init() {
-      for (let t = 0; t < n; t++) {
-        star[t] = new Array(5);
-        star[t][0] = Math.random() * w * 2 - 2 * x;
-        star[t][1] = Math.random() * h * 2 - 2 * y;
-        star[t][2] = Math.round(Math.random() * z);
-        star[t][3] = 0;
-        star[t][4] = 0;
-      }
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [handleKeyDown, handleKeyUp]);
 
-      r.width = w;
-      r.height = h;
-      context = r.getContext("2d")!;
-      context.fillStyle = "rgb(0,0,0)";
-      context.strokeStyle = "rgb(0,255,255)";
-    }
-    function anim() {
-      context.fillRect(0, 0, w, h);
-
-      for (let t = 0; t < n; t++) {
-        star_x_save = star[t][3];
-        star_y_save = star[t][4];
-        star[t][2] -= star_speed;
-        if (star[t][2] < 0) {
-          star[t][2] += z;
-        }
-        star[t][3] = x + (star[t][0] / star[t][2]) * star_ratio;
-        star[t][4] = y + (star[t][1] / star[t][2]) * star_ratio;
-        context.lineWidth = 2 * (1 - star_color_ratio * star[t][2]);
-        context.beginPath();
-        context.moveTo(star_x_save, star_y_save);
-        context.lineTo(star[t][3], star[t][4]);
-        context.stroke();
-        context.closePath();
-      }
-      requestAnimationFrame(anim);
-    }
-    let r = document.getElementById("field") as HTMLCanvasElement;
-    let n = 812;
-    let w = 0;
-    let h = 0;
-    let x = 0;
-    let y = 0;
-    let z = 0;
-    let star_color_ratio = 0;
-    let star_x_save: number;
-    let star_y_save: number;
-    let star_ratio = 115;
-    let star_speed = 0.5;
-    let star: number[][] = new Array(n);
-    let cursor_x = 0;
-    let cursor_y = 0;
-    let context: CanvasRenderingContext2D;
-    start();
-    window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
-  }, []);
+  const getShipSize = () => (score >= 1000 ? 180 : score >= 500 ? 120 : 60);
+  const getShipImage = () =>
+    score >= 500
+      ? "/assets/spaces-ship-huge.png"
+      : score >= 200
+      ? "/assets/spaces-ship-middle.png"
+      : "/assets/spaces-ship-small.png";
+  const getNextShipImage = () =>
+    score >= 500 ? null : score >= 200 ? "/assets/spaces-ship-huge.png" : "/assets/spaces-ship-middle.png";
+  const getScoreLevel = () =>
+    score >= 500 ? "Huge Ship" : score >= 200 ? "Middle Ship" : "Small Ship";
 
   return (
     <div className="relative w-screen h-screen bg-black overflow-hidden">
-      <canvas
-        id="field"
-        className="absolute inset-0 z-0 pointer-events-none"
-      ></canvas>
-
-      {/* Timer */}
+      <canvas id="field" className="absolute inset-0 z-0 pointer-events-none" />
       <div className="absolute top-4 right-4 text-white text-xl font-bold">
         Time: {timeLeft}s
       </div>
-
-      {/* Score */}
       <div
         className={`absolute top-4 left-4 text-2xl font-bold transition-all duration-500 ${
           isScoreDecreasing ? "text-red-500" : "text-white"
@@ -340,22 +281,14 @@ function App() {
           {getNextShipImage() && (
             <>
               <span className="text-yellow-500 text-xl">→</span>
-              <img
-                src={getNextShipImage()}
-                alt="Next Ship"
-                className="w-6 h-6"
-              />
+              <img src={getNextShipImage()} alt="Next Ship" className="w-6 h-6" />
             </>
           )}
         </div>
       </div>
-
-      {/* Score Animations */}
       {scoreAnimations.map((animation) => (
         <ScoreAnimation key={animation.id} animation={animation} />
       ))}
-
-      {/* Game Over */}
       {gameOver && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75">
           <div className="text-center text-white">
@@ -370,20 +303,10 @@ function App() {
           </div>
         </div>
       )}
-
-      {/* Ship */}
-      <Ship
-        position={shipPosition}
-        size={getShipSize()}
-        image={getShipImage()}
-      />
-
-      {/* Bullets */}
+      <Ship position={shipPosition} size={getShipSize()} image={getShipImage()} />
       {bullets.map((bullet) => (
         <Bullet key={bullet.id} bullet={bullet} />
       ))}
-
-      {/* Enemies */}
       {enemies.map((enemy) => (
         <Enemy key={enemy.id} enemy={enemy} />
       ))}
