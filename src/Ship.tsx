@@ -4,12 +4,13 @@ interface ShipProps {
   position: { x: number };
   size: number;
   image: string;
+  isFading: boolean;
 }
 
-const Ship: React.FC<ShipProps> = ({ position, size, image }) => {
+const Ship: React.FC<ShipProps> = ({ position, size, image, isFading }) => {
   return (
     <div
-      className="absolute bottom-10 transform -translate-x-1/2"
+      className={`absolute bottom-10 transform -translate-x-1/2 ${isFading ? "fade-out" : ""}`}
       style={{
         left: `${position.x}px`,
         width: `${size}px`,

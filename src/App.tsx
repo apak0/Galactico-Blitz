@@ -25,6 +25,19 @@ interface ScoreAnimation {
   y: number;
 }
 
+interface CollisionEffect {
+  x: number;
+  y: number;
+  id: string;
+}
+
+interface FadingEntity {
+  type: "ship" | "enemy";
+  x: number;
+  y: number;
+  id: string;
+}
+
 const useStarfield = (canvasId: string) => {
   useEffect(() => {
     const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -89,6 +102,8 @@ function App() {
   const [timeLeft, setTimeLeft] = useState(60);
   const [scoreAnimations, setScoreAnimations] = useState<ScoreAnimation[]>([]);
   const [isScoreDecreasing, setIsScoreDecreasing] = useState(false);
+  const [collisionEffect, setCollisionEffect] = useState<CollisionEffect | null>(null);
+  const [fadingEntities, setFadingEntities] = useState<FadingEntity[]>([]);
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const animationFrameId = useRef<number>();
@@ -126,7 +141,6 @@ function App() {
 
   useStarfield("field");
 
-  // Timer
   useEffect(() => {
     if (gameOver) return;
     const timer = setInterval(() => {
@@ -135,18 +149,16 @@ function App() {
     return () => clearInterval(timer);
   }, [gameOver]);
 
-  // Game loop with requestAnimationFrame
   useEffect(() => {
     if (gameOver) return;
 
     const gameLoop = (currentTime: number) => {
-      const deltaTime = (currentTime - lastFrameTime.current) / 1000; // Seconds
+      const deltaTime = (currentTime - lastFrameTime.current) / 1000;
       lastFrameTime.current = currentTime;
 
-      // Move ship
       setShipPosition((prev) => {
         let newX = prev.x;
-        const moveSpeed = 8 / 0.016; // Eski 16ms baz alınarak sabit hız
+        const moveSpeed = 8 / 0.016;
         if (keysPressed.current["ArrowLeft"]) {
           newX = Math.max(30, prev.x - moveSpeed * deltaTime);
         }
@@ -156,18 +168,16 @@ function App() {
         return { x: newX };
       });
 
-      // Move bullets
       setBullets((prev) =>
         prev
-          .map((b) => ({ ...b, y: b.y - (5 / 0.016) * deltaTime })) // Eski hıza eşitle
+          .map((b) => ({ ...b, y: b.y - (5 / 0.016) * deltaTime }))
           .filter((b) => b.y > 0)
       );
 
-      // Move enemies and check collision
       setEnemies((prev) => {
-        let newEnemies = prev
-          .map((e) => ({ ...e, y: e.y + 2 * deltaTime / 0.016 })) // Eski hıza eşitle (2 piksel/16ms)
-          .filter((e) => {
+        let newEnemies = prev.map((e) => ({ ...e, y: e.y + 2 * deltaTime / 0.016 }));
+        if (!collisionEffect) {
+          newEnemies = newEnemies.filter((e) => {
             if (e.y >= window.innerHeight) {
               setScore((s) => s - 10);
               setIsScoreDecreasing(true);
@@ -182,13 +192,25 @@ function App() {
             const shipY = window.innerHeight - (getShipImage() === "/assets/spaces-ship-huge.png" ? 140 : 100);
             if (
               Math.abs(e.x - shipPosition.x) < shipSize / 2 + 15 &&
-              Math.abs(e.y - shipY) < shipSize / 2 + 15
+              Math.abs(e.y - shipY) < shipSize / 2 + 15 &&
+              !fadingEntities.some((fe) => fe.type === "ship")
             ) {
-              setGameOver(true);
-              return false;
+              const collisionId = generateUniqueId();
+              setCollisionEffect({ x: e.x, y: e.y, id: collisionId });
+              setFadingEntities((prev) => [
+                ...prev,
+                { type: "ship", x: shipPosition.x, y: shipY, id: collisionId + "-ship" },
+                { type: "enemy", x: e.x, y: e.y, id: e.id.toString() },
+              ]);
+              setTimeout(() => {
+                setCollisionEffect(null);
+                setGameOver(true);
+              }, 1000); // Efekt 1 saniye göründükten sonra oyun biter
+              return true; // Düşmanı hemen kaldırma
             }
             return true;
           });
+        }
         if (Math.random() < 0.02) {
           newEnemies.push({
             id: Date.now(),
@@ -200,7 +222,6 @@ function App() {
         return newEnemies;
       });
 
-      // Bullet-enemy collision
       setBullets((prevBullets) => {
         const bulletsCopy = [...prevBullets];
         setEnemies((prevEnemies) => {
@@ -226,7 +247,6 @@ function App() {
         return bulletsCopy;
       });
 
-      // Clean up score animations
       setScoreAnimations((prev) =>
         prev.filter((a) => Date.now() - parseInt(a.id.split("-")[0]) < 1000)
       );
@@ -239,9 +259,8 @@ function App() {
     return () => {
       if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
     };
-  }, [gameOver, generateUniqueId, shipPosition.x]);
+  }, [gameOver, generateUniqueId, shipPosition.x, collisionEffect, fadingEntities]);
 
-  // Keyboard controls
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
@@ -289,7 +308,13 @@ function App() {
       {scoreAnimations.map((animation) => (
         <ScoreAnimation key={animation.id} animation={animation} />
       ))}
-      {gameOver && (
+      {collisionEffect && (
+        <div
+          className="absolute explosion-effect"
+          style={{ left: collisionEffect.x, top: collisionEffect.y }}
+        />
+      )}
+      {gameOver && !collisionEffect && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75">
           <div className="text-center text-white">
             <h2 className="text-4xl font-bold mb-4">Game Over!</h2>
@@ -303,12 +328,21 @@ function App() {
           </div>
         </div>
       )}
-      <Ship position={shipPosition} size={getShipSize()} image={getShipImage()} />
+      <Ship
+        position={shipPosition}
+        size={getShipSize()}
+        image={getShipImage()}
+        isFading={fadingEntities.some((fe) => fe.type === "ship")}
+      />
+      {enemies.map((enemy) => (
+        <Enemy
+          key={enemy.id}
+          enemy={enemy}
+          isFading={fadingEntities.some((fe) => fe.id === enemy.id.toString())}
+        />
+      ))}
       {bullets.map((bullet) => (
         <Bullet key={bullet.id} bullet={bullet} />
-      ))}
-      {enemies.map((enemy) => (
-        <Enemy key={enemy.id} enemy={enemy} />
       ))}
     </div>
   );
