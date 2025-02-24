@@ -102,7 +102,7 @@ function App() {
   const [timeLeft, setTimeLeft] = useState(60);
   const [scoreAnimations, setScoreAnimations] = useState<ScoreAnimation[]>([]);
   const [isScoreDecreasing, setIsScoreDecreasing] = useState(false);
-  const [collisionEffect, setCollisionEffect] = useState<CollisionEffect | null>(null);
+  const [collisionEffects, setCollisionEffects] = useState<CollisionEffect[]>([]);
   const [fadingEntities, setFadingEntities] = useState<FadingEntity[]>([]);
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
@@ -175,8 +175,14 @@ function App() {
       );
 
       setEnemies((prev) => {
-        let newEnemies = prev.map((e) => ({ ...e, y: e.y + 2 * deltaTime / 0.016 }));
-        if (!collisionEffect) {
+        let newEnemies = prev.map((e) => ({
+          ...e,
+          y:
+            fadingEntities.some((fe) => fe.id === e.id.toString())
+              ? e.y // Kaybolma sırasında sabit kal
+              : e.y + 2 * deltaTime / 0.016, // Normal hareket
+        }));
+        if (!fadingEntities.some((fe) => fe.type === "ship")) {
           newEnemies = newEnemies.filter((e) => {
             if (e.y >= window.innerHeight) {
               setScore((s) => s - 10);
@@ -196,17 +202,17 @@ function App() {
               !fadingEntities.some((fe) => fe.type === "ship")
             ) {
               const collisionId = generateUniqueId();
-              setCollisionEffect({ x: e.x, y: e.y, id: collisionId });
+              setCollisionEffects((prev) => [...prev, { x: e.x, y: e.y, id: collisionId }]);
               setFadingEntities((prev) => [
                 ...prev,
                 { type: "ship", x: shipPosition.x, y: shipY, id: collisionId + "-ship" },
                 { type: "enemy", x: e.x, y: e.y, id: e.id.toString() },
               ]);
               setTimeout(() => {
-                setCollisionEffect(null);
+                setCollisionEffects((prev) => prev.filter((ce) => ce.id !== collisionId));
                 setGameOver(true);
-              }, 1000); // Efekt 1 saniye göründükten sonra oyun biter
-              return true; // Düşmanı hemen kaldırma
+              }, 1000);
+              return true;
             }
             return true;
           });
@@ -230,15 +236,25 @@ function App() {
             enemiesCopy.forEach((enemy, eIndex) => {
               if (
                 Math.abs(bullet.x - enemy.x) < 30 &&
-                Math.abs(bullet.y - enemy.y) < 30
+                Math.abs(bullet.y - enemy.y) < 30 &&
+                !fadingEntities.some((fe) => fe.id === enemy.id.toString())
               ) {
+                const collisionId = generateUniqueId();
                 bulletsCopy.splice(bIndex, 1);
-                enemiesCopy.splice(eIndex, 1);
+                setCollisionEffects((prev) => [...prev, { x: enemy.x, y: enemy.y, id: collisionId }]);
+                setFadingEntities((prev) => [
+                  ...prev,
+                  { type: "enemy", x: enemy.x, y: enemy.y, id: enemy.id.toString() },
+                ]);
                 setScore((s) => s + 10);
                 setScoreAnimations((prev) => [
                   ...prev,
                   { value: 20, id: generateUniqueId(), x: enemy.x, y: enemy.y },
                 ]);
+                setTimeout(() => {
+                  setCollisionEffects((prev) => prev.filter((ce) => ce.id !== collisionId));
+                  setEnemies((prev) => prev.filter((e) => e.id !== enemy.id));
+                }, 1000);
               }
             });
           });
@@ -259,7 +275,7 @@ function App() {
     return () => {
       if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
     };
-  }, [gameOver, generateUniqueId, shipPosition.x, collisionEffect, fadingEntities]);
+  }, [gameOver, generateUniqueId, shipPosition.x, collisionEffects, fadingEntities]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -308,13 +324,14 @@ function App() {
       {scoreAnimations.map((animation) => (
         <ScoreAnimation key={animation.id} animation={animation} />
       ))}
-      {collisionEffect && (
+      {collisionEffects.map((effect) => (
         <div
+          key={effect.id}
           className="absolute explosion-effect"
-          style={{ left: collisionEffect.x, top: collisionEffect.y }}
+          style={{ left: effect.x, top: effect.y }}
         />
-      )}
-      {gameOver && !collisionEffect && (
+      ))}
+      {gameOver && !collisionEffects.length && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75">
           <div className="text-center text-white">
             <h2 className="text-4xl font-bold mb-4">Game Over!</h2>
