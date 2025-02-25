@@ -29,11 +29,11 @@
 @keyframes fade-out {
   0% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, 0) scale(1); /* Ship için bottom bazlı */
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.5);
+    transform: translate(-50%, 0) scale(0.5); /* Merkezden küçülme */
   }
 }
 
@@ -60,4 +60,5 @@ canvas {
 
 .fade-out {
   animation: fade-out 1s ease-out forwards;
+  transform-origin: center; /* Kaybolma merkezi */
 }
