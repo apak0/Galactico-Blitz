@@ -109,7 +109,7 @@ function App() {
   const animationFrameId = useRef<number>();
   const animationCounter = useRef(0);
   const lastFrameTime = useRef<number>(performance.now());
-  const lastShotTime = useRef<number>(0); // Ateş etme sıklığını kontrol etmek için
+  const lastShotTime = useRef<number>(0);
 
   const generateUniqueId = useCallback(() => {
     animationCounter.current += 1;
@@ -156,7 +156,6 @@ function App() {
       const deltaTime = (currentTime - lastFrameTime.current) / 1000;
       lastFrameTime.current = currentTime;
 
-      // Hareket kontrolü
       setShipPosition((prev) => {
         let newX = prev.x;
         const moveSpeed = 8 / 0.016;
@@ -169,10 +168,9 @@ function App() {
         return { x: newX };
       });
 
-      // Ateş etme kontrolü (saniyede max 5 atış için)
       if (keysPressed.current[" "]) {
         const timeSinceLastShot = currentTime - lastShotTime.current;
-        if (timeSinceLastShot >= 200) { // 200ms aralıkla ateş (saniyede ~5 atış)
+        if (timeSinceLastShot >= 200) {
           shoot();
           lastShotTime.current = currentTime;
         }
@@ -189,8 +187,8 @@ function App() {
           ...e,
           y:
             fadingEntities.some((fe) => fe.id === e.id.toString())
-              ? e.y // Kaybolma sırasında sabit kal
-              : e.y + 2 * deltaTime / 0.016, // Normal hareket
+              ? e.y
+              : e.y + 2 * deltaTime / 0.016,
         }));
         if (!fadingEntities.some((fe) => fe.type === "ship")) {
           newEnemies = newEnemies.filter((e) => {
@@ -206,9 +204,10 @@ function App() {
             }
             const shipSize = getShipSize();
             const shipY = window.innerHeight - (getShipImage() === "/assets/spaces-ship-huge.png" ? 140 : 100);
+            const enemySize = 30;
             if (
-              Math.abs(e.x - shipPosition.x) < shipSize / 2 + 15 &&
-              Math.abs(e.y - shipY) < shipSize / 2 + 15 &&
+              Math.abs(e.x - shipPosition.x) <= shipSize / 2 + enemySize / 2 &&
+              Math.abs(e.y - shipY) <= shipSize / 2 + enemySize / 2 &&
               !fadingEntities.some((fe) => fe.type === "ship")
             ) {
               const collisionId = generateUniqueId();
@@ -314,6 +313,9 @@ function App() {
       <div className="absolute top-4 right-4 text-white text-xl font-bold">
         Time: {timeLeft}s
       </div>
+      <div className="absolute top-0 right-0 text-white text-sm font-normal">
+        v1.0
+      </div>
       <div
         className={`absolute top-4 left-4 text-2xl font-bold transition-all duration-500 ${
           isScoreDecreasing ? "text-red-500" : "text-white"
@@ -375,4 +377,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

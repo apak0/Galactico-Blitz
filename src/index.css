@@ -45,6 +45,7 @@ canvas {
   margin: 0;
   z-index: 0;
   pointer-events: none;
+  
 }
 
 .explosion-effect {
