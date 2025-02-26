@@ -15,8 +15,8 @@ const Ship: React.FC<ShipProps> = ({ position, size, image, isFading }) => {
         left: `${position.x}px`,
         width: `${size}px`,
         height: `${size}px`,
-        transform: "translate(-50%, 0)", // X ekseninde merkez, Y ekseninde bottom’a bağlı
-        transformOrigin: "center", // Animasyon merkezi
+        transform: "translate(-50%, 0)",
+        transformOrigin: "center",
       }}
     >
       <img

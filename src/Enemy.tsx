@@ -14,8 +14,8 @@ const Enemy: React.FC<EnemyProps> = ({ enemy, isFading }) => {
         top: `${enemy.y}px`,
         width: "30px",
         height: "30px",
-        transform: `translate(-50%, -50%) `, // Merkezde hizalı ve dönmüş
-        transformOrigin: "center", // Ana div'in merkezi
+        transform: `translate(-50%, -50%)`,
+        transformOrigin: "center",
       }}
     >
       <img
@@ -24,7 +24,7 @@ const Enemy: React.FC<EnemyProps> = ({ enemy, isFading }) => {
         style={{
           width: "100%",
           height: "100%",
-          transformOrigin: "center", // Görüntünün merkezi
+          transformOrigin: "center",
         }}
       />
     </div>
