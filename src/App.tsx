@@ -9,10 +9,88 @@ interface Position {
   y: number;
 }
 
-// ... diğer interface’ler (Enemy, Bullet, ScoreAnimation, CollisionEffect, FadingEntity)
+interface Enemy extends Position {
+  id: number;
+  hits: number;
+}
+
+interface Bullet extends Position {
+  id: number;
+}
+
+interface ScoreAnimation {
+  value: number;
+  id: string;
+  x: number;
+  y: number;
+}
+
+interface CollisionEffect {
+  x: number;
+  y: number;
+  id: string;
+}
+
+interface FadingEntity {
+  type: "ship" | "enemy";
+  x: number;
+  y: number;
+  id: string;
+}
 
 const useStarfield = (canvasId: string) => {
-  // ... mevcut useStarfield kodu
+  useEffect(() => {
+    const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+    const context = canvas.getContext("2d")!;
+    let w = window.innerWidth;
+    let h = window.innerHeight;
+    const n = 812;
+    const starRatio = 115;
+    const starSpeed = 0.5;
+    const stars = new Array(n).fill(0).map(() => [
+      Math.random() * w * 2 - w,
+      Math.random() * h * 2 - h,
+      Math.round(Math.random() * ((w + h) / 2)),
+      0,
+      0,
+    ]);
+
+    const resize = () => {
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = w;
+      canvas.height = h;
+    };
+
+    const animate = () => {
+      context.fillStyle = "rgb(0,0,0)";
+      context.fillRect(0, 0, w, h);
+      context.strokeStyle = "rgb(0,255,255)";
+
+      for (let i = 0; i < n; i++) {
+        const [x, y, z, prevX, prevY] = stars[i];
+        stars[i][2] -= starSpeed;
+        if (stars[i][2] < 0) stars[i][2] += (w + h) / 2;
+        stars[i][3] = w / 2 + (x / stars[i][2]) * starRatio;
+        stars[i][4] = h / 2 + (y / stars[i][2]) * starRatio;
+
+        context.lineWidth = 2 * (1 - 1 / ((w + h) / 2) * stars[i][2]);
+        context.beginPath();
+        context.moveTo(prevX, prevY);
+        context.lineTo(stars[i][3], stars[i][4]);
+        context.stroke();
+        context.closePath();
+      }
+
+      requestAnimationFrame(animate);
+    };
+
+    resize();
+    animate();
+    window.addEventListener("resize", resize);
+
+    return () => window.removeEventListener("resize", resize);
+  }, [canvasId]);
 };
 
 function App() {
@@ -26,7 +104,6 @@ function App() {
   const [isScoreDecreasing, setIsScoreDecreasing] = useState(false);
   const [collisionEffects, setCollisionEffects] = useState<CollisionEffect[]>([]);
   const [fadingEntities, setFadingEntities] = useState<FadingEntity[]>([]);
-  const [isLandscape, setIsLandscape] = useState(window.innerWidth > window.innerHeight);
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const animationFrameId = useRef<number>();
@@ -49,29 +126,6 @@ function App() {
       },
     ]);
   }, [shipPosition.x]);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (gameOver) return;
-    const touch = e.touches[0];
-    const touchX = touch.clientX;
-    const screenWidth = window.innerWidth;
-
-    if (touchX < screenWidth / 2) {
-      if (touchX < screenWidth / 4) {
-        keysPressed.current["ArrowLeft"] = true;
-      } else if (touchX > screenWidth / 4 && touchX < screenWidth / 2) {
-        keysPressed.current["ArrowRight"] = true;
-      }
-    } else {
-      keysPressed.current[" "] = true;
-    }
-  }, [gameOver]);
-
-  const handleTouchEnd = useCallback(() => {
-    keysPressed.current["ArrowLeft"] = false;
-    keysPressed.current["ArrowRight"] = false;
-    keysPressed.current[" "] = false;
-  }, []);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -96,22 +150,9 @@ function App() {
   }, [gameOver]);
 
   useEffect(() => {
-    const handleResize = () => {
-      setShipPosition((prev) => ({ x: window.innerWidth / 2 }));
-      setIsLandscape(window.innerWidth > window.innerHeight);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  useEffect(() => {
     if (gameOver) return;
 
     const gameLoop = (currentTime: number) => {
-      if (currentTime - lastFrameTime.current < 1000 / 30) { // 30 FPS
-        animationFrameId.current = requestAnimationFrame(gameLoop);
-        return;
-      }
       const deltaTime = (currentTime - lastFrameTime.current) / 1000;
       lastFrameTime.current = currentTime;
 
@@ -157,7 +198,7 @@ function App() {
               setTimeout(() => setIsScoreDecreasing(false), 500);
               setScoreAnimations((prev) => [
                 ...prev,
-                { value: -10, id: generateUniqueId(), x: e.x, y: window.innerHeight - 50 },
+                { value: -20, id: generateUniqueId(), x: e.x, y: window.innerHeight - 50 },
               ]);
               return false;
             }
@@ -165,8 +206,8 @@ function App() {
             const shipY = window.innerHeight - (getShipImage() === "/assets/spaces-ship-huge.png" ? 140 : 100);
             const enemySize = 30;
             if (
-              Math.abs(e.x - shipPosition.x) <= shipSize / 2 + enemySize / 2 - 5 &&
-              Math.abs(e.y - shipY) <= shipSize / 2 + enemySize / 2 - 5 &&
+              Math.abs(e.x - shipPosition.x) <= shipSize / 2 + enemySize / 2 &&
+              Math.abs(e.y - shipY) <= shipSize / 2 + enemySize / 2 &&
               !fadingEntities.some((fe) => fe.type === "ship")
             ) {
               const collisionId = generateUniqueId();
@@ -248,15 +289,11 @@ function App() {
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
-    window.addEventListener("touchstart", handleTouchStart as any); // TypeScript için any ekledim
-    window.addEventListener("touchend", handleTouchEnd as any);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
-      window.removeEventListener("touchstart", handleTouchStart as any);
-      window.removeEventListener("touchend", handleTouchEnd as any);
     };
-  }, [handleKeyDown, handleKeyUp, handleTouchStart, handleTouchEnd]);
+  }, [handleKeyDown, handleKeyUp]);
 
   const getShipSize = () => (score >= 1000 ? 180 : score >= 500 ? 120 : 60);
   const getShipImage = () =>
@@ -270,20 +307,8 @@ function App() {
   const getScoreLevel = () =>
     score >= 500 ? "Huge Ship" : score >= 200 ? "Middle Ship" : "Small Ship";
 
-  if (!isLandscape) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-black text-white text-xl">
-        Please rotate your device to landscape mode for the best experience!
-      </div>
-    );
-  }
-
   return (
-    <div
-      className="relative w-screen h-screen bg-black overflow-hidden touch-none"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
+    <div className="relative w-screen h-screen bg-black overflow-hidden">
       <canvas id="field" className="absolute inset-0 z-0 pointer-events-none" />
       <div className="absolute top-4 right-4 text-white text-xl font-bold">
         Time: {timeLeft}s
@@ -294,10 +319,10 @@ function App() {
       <div
         className={`absolute top-4 left-4 text-2xl font-bold transition-all duration-500 ${
           isScoreDecreasing ? "text-red-500" : "text-white"
-        }`}
+        }`} 
       >
         Score: {score}
-        <div className="text-lg font-normal">{getScoreLevel()}</div>
+        
         <div className="flex items-center space-x-2 mt-2">
           <img src={getShipImage()} alt="Current Ship" className="w-6 h-6" />
           {getNextShipImage() && (
@@ -307,6 +332,8 @@ function App() {
             </>
           )}
         </div>
+        {/* Ship level */}
+        {/* <div className="text-lg font-normal">{getScoreLevel()}</div>  */}
       </div>
       {scoreAnimations.map((animation) => (
         <ScoreAnimation key={animation.id} animation={animation} />
