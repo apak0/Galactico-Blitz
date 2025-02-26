@@ -319,10 +319,10 @@ function App() {
       <div
         className={`absolute top-4 left-4 text-2xl font-bold transition-all duration-500 ${
           isScoreDecreasing ? "text-red-500" : "text-white"
-        }`}
+        }`} 
       >
         Score: {score}
-        <div className="text-lg font-normal">{getScoreLevel()}</div>
+        
         <div className="flex items-center space-x-2 mt-2">
           <img src={getShipImage()} alt="Current Ship" className="w-6 h-6" />
           {getNextShipImage() && (
@@ -332,6 +332,8 @@ function App() {
             </>
           )}
         </div>
+        {/* Ship level */}
+        {/* <div className="text-lg font-normal">{getScoreLevel()}</div>  */}
       </div>
       {scoreAnimations.map((animation) => (
         <ScoreAnimation key={animation.id} animation={animation} />
