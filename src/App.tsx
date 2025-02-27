@@ -38,6 +38,7 @@ interface FadingEntity {
   id: string;
 }
 
+// getShipSize fonksiyonunu component dışına taşıyoruz
 const getShipSize = (score: number) => (score >= 1000 ? 180 : score >= 500 ? 120 : 60);
 
 const useStarfield = (canvasId: string) => {
@@ -98,7 +99,7 @@ const useStarfield = (canvasId: string) => {
 function App() {
   const [shipPosition, setShipPosition] = useState<Position>({
     x: window.innerWidth / 2,
-    y: window.innerHeight - getShipSize(0), // Başlangıçta alt kısımda
+    y: window.innerHeight - getShipSize(0), // getShipSize2(0) yerine getShipSize(0) kullandık
   });
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
@@ -122,33 +123,15 @@ function App() {
   }, []);
 
   const shoot = useCallback(() => {
-    if (score >= 100) {
-      // Skor 100 veya daha yüksekse, sağ ve sol taraftan iki mermi ateşle
-      setBullets((prev) => [
-        ...prev,
-        {
-          id: Date.now() + "-left",
-          x: shipPosition.x - 20, // Sol mermi, geminin solundan 20 piksel
-          y: shipPosition.y - 30,
-        },
-        {
-          id: Date.now() + "-right",
-          x: shipPosition.x + 20, // Sağ mermi, geminin sağından 20 piksel
-          y: shipPosition.y - 30,
-        },
-      ]);
-    } else {
-      // Skor 100’den düşükse, tek mermi ateşle (mevcut mantık)
-      setBullets((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          x: shipPosition.x,
-          y: shipPosition.y - 30,
-        },
-      ]);
-    }
-  }, [shipPosition.x, shipPosition.y, score]);
+    setBullets((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        x: shipPosition.x,
+        y: shipPosition.y - 30, // Mermiyi geminin üstünden ateşle
+      },
+    ]);
+  }, [shipPosition.x, shipPosition.y]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -239,7 +222,7 @@ function App() {
             const enemySize = 30;
             if (
               Math.abs(e.x - shipPosition.x) <= shipSize / 2 + enemySize / 2 &&
-              Math.abs(e.y - shipPosition.y) <= shipSize / 2 + enemySize / 2 &&
+              Math.abs(e.y - shipPosition.y) <= shipSize / 2 + enemySize / 2 && // shipPosition.y ile güncelledik
               !fadingEntities.some((fe) => fe.type === "ship")
             ) {
               const collisionId = generateUniqueId();
@@ -316,7 +299,7 @@ function App() {
     return () => {
       if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
     };
-  }, [gameOver, generateUniqueId, shipPosition.x, shipPosition.y, collisionEffects, fadingEntities, shoot, score]);
+  }, [gameOver, generateUniqueId, shipPosition.x, shipPosition.y, collisionEffects, fadingEntities, shoot]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
