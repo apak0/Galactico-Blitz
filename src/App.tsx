@@ -99,7 +99,7 @@ const useStarfield = (canvasId: string) => {
 function App() {
   const [shipPosition, setShipPosition] = useState<Position>({
     x: window.innerWidth / 2,
-    y: window.innerHeight - getShipSize(0), // Başlangıç skor 0, bu yüzden 60
+    y: window.innerHeight - getShipSize(0), // getShipSize2(0) yerine getShipSize(0) kullandık
   });
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
@@ -219,18 +219,17 @@ function App() {
               return false;
             }
             const shipSize = getShipSize();
-            const shipY = window.innerHeight - (getShipImage() === "/assets/spaces-ship-huge.png" ? 140 : 100);
             const enemySize = 30;
             if (
               Math.abs(e.x - shipPosition.x) <= shipSize / 2 + enemySize / 2 &&
-              Math.abs(e.y - shipY) <= shipSize / 2 + enemySize / 2 &&
+              Math.abs(e.y - shipPosition.y) <= shipSize / 2 + enemySize / 2 && // shipPosition.y ile güncelledik
               !fadingEntities.some((fe) => fe.type === "ship")
             ) {
               const collisionId = generateUniqueId();
               setCollisionEffects((prev) => [...prev, { x: e.x, y: e.y, id: collisionId }]);
               setFadingEntities((prev) => [
                 ...prev,
-                { type: "ship", x: shipPosition.x, y: shipY, id: collisionId + "-ship" },
+                { type: "ship", x: shipPosition.x, y: shipPosition.y, id: collisionId + "-ship" },
                 { type: "enemy", x: e.x, y: e.y, id: e.id.toString() },
               ]);
               setTimeout(() => {
