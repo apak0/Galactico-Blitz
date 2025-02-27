@@ -7,6 +7,7 @@ interface ScoreAnimationProps {
 const ScoreAnimation: React.FC<ScoreAnimationProps> = ({ animation }) => {
   return (
     <div
+      key={animation.id}
       className={`absolute text-lg font-bold ${
         animation.value > 0 ? "text-green-500" : "text-red-500"
       }`}
@@ -14,8 +15,7 @@ const ScoreAnimation: React.FC<ScoreAnimationProps> = ({ animation }) => {
         left: `${animation.x}px`,
         top: `${animation.y}px`,
         transform: "translate(-50%, -50%)",
-        animation: "float-up 1s ease-out forwards",
-      
+        animation: "fadeOut 1s linear forwards",
       }}
     >
       {animation.value > 0 ? "+" : ""}
@@ -24,4 +24,5 @@ const ScoreAnimation: React.FC<ScoreAnimationProps> = ({ animation }) => {
   );
 };
 
+// fadeOut animasyonu için CSS (index.css veya ayrı bir stil dosyasında)
 export default ScoreAnimation;

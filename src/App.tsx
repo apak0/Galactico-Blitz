@@ -313,10 +313,17 @@ function App() {
                   ...prev,
                   { type: "enemy", x: enemy.x, y: enemy.y, id: enemy.id.toString() },
                 ]);
-                setScore((s) => s + 10);
+                // Puanları düşman görseline göre ayarla (çarpma olmadan)
+                let scoreIncrease = 10; 
+                if (enemy.image === "/assets/enemy-2.png") {
+                  scoreIncrease = 15; 
+                } else if (enemy.image === "/assets/enemy-3.png") {
+                  scoreIncrease = 20;
+                }
+                setScore((s) => s + scoreIncrease); // Puanı çarpma olmadan ekle    
                 setScoreAnimations((prev) => [
                   ...prev,
-                  { value: 20, id: generateUniqueId(), x: enemy.x, y: enemy.y },
+                  { value: scoreIncrease * 2, id: generateUniqueId(), x: enemy.x, y: enemy.y }, // Tam puanı göster (çarpma olmadan)
                 ]);
                 setTimeout(() => {
                   setCollisionEffects((prev) => prev.filter((ce) => ce.id !== collisionId));
@@ -370,8 +377,8 @@ function App() {
       <div className="absolute top-4 right-4 text-white text-xl font-bold">
         Time: {timeLeft}s
       </div>
-      <div className="absolute bottom-0 right-0 text-white text-xs font-normal">
-        v2.0
+      <div className="absolute top-0 right-0 text-white text-sm font-normal">
+        v1.0
       </div>
       <div
         className={`absolute top-4 left-4 text-2xl font-bold transition-all duration-500 ${
