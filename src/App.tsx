@@ -12,7 +12,7 @@ interface Position {
 interface Enemy extends Position {
   id: number;
   hits: number;
-  image: string; // Yeni özellik: Düşman görseli için
+  image: string; // Düşman görseli için
 }
 
 interface Bullet extends Position {
@@ -207,7 +207,7 @@ function App() {
 
       if (keysPressed.current[" "]) {
         const timeSinceLastShot = currentTime - lastShotTime.current;
-        if (timeSinceLastShot >= 150) { // 500 milisaniye (saniyede 2 mermi) kontrolü
+        if (timeSinceLastShot >= 150) { // 150 milisaniye (saniyede yaklaşık 6.67 mermi) kontrolü
           shoot();
           lastShotTime.current = currentTime;
         }
@@ -263,7 +263,24 @@ function App() {
           });
         }
         if (Math.random() < 0.02) {
-          const enemyImage = score >= 250 ? (Math.random() < 0.5 ? "/assets/enemy.png" : "/assets/enemy-2.png") : "/assets/enemy.png";
+          let enemyImage;
+          if (score >= 540) {
+            // Skor 540 veya daha yüksekse, düşmanlar enemy, enemy-2, ve enemy-3 arasında rastgele dağıtılır
+            const random = Math.random();
+            if (random < 0.33) {
+              enemyImage = "/assets/enemy.png";
+            } else if (random < 0.66) {
+              enemyImage = "/assets/enemy-2.png";
+            } else {
+              enemyImage = "/assets/enemy-3.png";
+            }
+          } else if (score >= 250) {
+            // Skor 250-539 arasında, düşmanlar enemy ve enemy-2 arasında %50-%50 dağıtılır
+            enemyImage = Math.random() < 0.5 ? "/assets/enemy.png" : "/assets/enemy-2.png";
+          } else {
+            // Skor 250’den düşükse, tüm düşmanlar enemy ile yaratılır
+            enemyImage = "/assets/enemy.png";
+          }
           newEnemies.push({
             id: Date.now(),
             x: Math.random() * (window.innerWidth - 60) + 30,
