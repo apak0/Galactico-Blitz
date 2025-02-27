@@ -1,7 +1,7 @@
 import React from "react";
 
 interface EnemyProps {
-  enemy: { id: number; x: number; y: number; hits: number };
+  enemy: { id: number; x: number; y: number; hits: number; image: string };
   isFading: boolean;
 }
 
@@ -14,17 +14,15 @@ const Enemy: React.FC<EnemyProps> = ({ enemy, isFading }) => {
         top: `${enemy.y}px`,
         width: "30px",
         height: "30px",
-        transform: `translate(-50%, -50%)`,
-        transformOrigin: "center",
+        transform: "translate(-50%, -50%)", // Merkezden hizalı
       }}
     >
       <img
-        src="/assets/enemy.png"
+        src={enemy.image} // Düşman görselini dinamik olarak ayarla
         alt="Enemy"
         style={{
           width: "100%",
           height: "100%",
-          transformOrigin: "center",
         }}
       />
     </div>

@@ -12,11 +12,12 @@ interface Position {
 interface Enemy extends Position {
   id: number;
   hits: number;
+  image: string; // Yeni özellik: Düşman görseli için
 }
 
 interface Bullet extends Position {
   id: number;
-  isNeon?: boolean; // Yeni özellik: Neon mermi için
+  isNeon?: boolean; // Neon mermi için
 }
 
 interface ScoreAnimation {
@@ -262,11 +263,13 @@ function App() {
           });
         }
         if (Math.random() < 0.02) {
+          const enemyImage = score >= 250 ? (Math.random() < 0.5 ? "/assets/enemy.png" : "/assets/enemy-2.png") : "/assets/enemy.png";
           newEnemies.push({
             id: Date.now(),
             x: Math.random() * (window.innerWidth - 60) + 30,
             y: 0,
             hits: 0,
+            image: enemyImage, // Düşman görselini belirle
           });
         }
         return newEnemies;
