@@ -157,19 +157,9 @@ function App() {
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (gameOver) return;
-      if (!keysPressed.current[event.key]) { // Tuş daha önce basılmamışsa ateş et
-        keysPressed.current[event.key] = true;
-        if (event.key === " ") {
-          const currentTime = performance.now();
-          const timeSinceLastShot = currentTime - lastShotTime.current;
-          if (timeSinceLastShot >= 200) { // 200 milisaniye (saniyede 5 mermi) kontrolü
-            shoot();
-            lastShotTime.current = currentTime;
-          }
-        }
-      }
+      keysPressed.current[event.key] = true;
     },
-    [gameOver, shoot]
+    [gameOver]
   );
 
   const handleKeyUp = useCallback((event: KeyboardEvent) => {
@@ -213,6 +203,14 @@ function App() {
 
         return { x: newX, y: newY };
       });
+
+      if (keysPressed.current[" "]) {
+        const timeSinceLastShot = currentTime - lastShotTime.current;
+        if (timeSinceLastShot >= 150) { // 500 milisaniye (saniyede 2 mermi) kontrolü
+          shoot();
+          lastShotTime.current = currentTime;
+        }
+      }
 
       setBullets((prev) =>
         prev
@@ -385,7 +383,7 @@ function App() {
             <p className="text-2xl">Final Score: {score}</p>
             <button
               className="mt-4 px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              onClick={() => window.location.reload()} // Kapanış parantezi düzeltildi
+              onClick={() => window.location.reload()}
             >
               Play Again
             </button>
