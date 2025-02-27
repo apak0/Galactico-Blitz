@@ -38,6 +38,9 @@ interface FadingEntity {
   id: string;
 }
 
+// getShipSize fonksiyonunu component dışına taşıyoruz
+const getShipSize = (score: number) => (score >= 1000 ? 180 : score >= 500 ? 120 : 60);
+
 const useStarfield = (canvasId: string) => {
   useEffect(() => {
     const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -94,7 +97,10 @@ const useStarfield = (canvasId: string) => {
 };
 
 function App() {
-  const [shipPosition, setShipPosition] = useState({ x: window.innerWidth / 2 });
+  const [shipPosition, setShipPosition] = useState<Position>({
+    x: window.innerWidth / 2,
+    y: window.innerHeight - getShipSize(0), // Başlangıç skor 0, bu yüzden 60
+  });
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
   const [score, setScore] = useState(0);
@@ -122,17 +128,18 @@ function App() {
       {
         id: Date.now(),
         x: shipPosition.x,
-        y: window.innerHeight - (getShipImage() === "/assets/spaces-ship-huge.png" ? 140 : 100),
+        y: shipPosition.y - 30, // Mermiyi geminin üstünden ateşle
       },
     ]);
-  }, [shipPosition.x]);
+  }, [shipPosition.x, shipPosition.y]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (gameOver) return;
       keysPressed.current[event.key] = true;
+      if (event.key === " ") shoot();
     },
-    [gameOver]
+    [gameOver, shoot]
   );
 
   const handleKeyUp = useCallback((event: KeyboardEvent) => {
@@ -158,14 +165,23 @@ function App() {
 
       setShipPosition((prev) => {
         let newX = prev.x;
-        const moveSpeed = 8 / 0.016;
+        let newY = prev.y;
+        const moveSpeed = 8 / 0.016; // Sabit hız, yumuşaklık yok
+
         if (keysPressed.current["ArrowLeft"]) {
           newX = Math.max(30, prev.x - moveSpeed * deltaTime);
         }
         if (keysPressed.current["ArrowRight"]) {
           newX = Math.min(window.innerWidth - 30, prev.x + moveSpeed * deltaTime);
         }
-        return { x: newX };
+        if (keysPressed.current["ArrowUp"]) {
+          newY = Math.max(30, prev.y - moveSpeed * deltaTime); // Yukarı hareket
+        }
+        if (keysPressed.current["ArrowDown"]) {
+          newY = Math.min(window.innerHeight - getShipSize(), prev.y + moveSpeed * deltaTime); // Aşağı hareket
+        }
+
+        return { x: newX, y: newY };
       });
 
       if (keysPressed.current[" "]) {
@@ -284,7 +300,7 @@ function App() {
     return () => {
       if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
     };
-  }, [gameOver, generateUniqueId, shipPosition.x, collisionEffects, fadingEntities, shoot]);
+  }, [gameOver, generateUniqueId, shipPosition.x, shipPosition.y, collisionEffects, fadingEntities, shoot]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -295,7 +311,6 @@ function App() {
     };
   }, [handleKeyDown, handleKeyUp]);
 
-  const getShipSize = () => (score >= 1000 ? 180 : score >= 500 ? 120 : 60);
   const getShipImage = () =>
     score >= 500
       ? "/assets/spaces-ship-huge.png"
@@ -319,10 +334,9 @@ function App() {
       <div
         className={`absolute top-4 left-4 text-2xl font-bold transition-all duration-500 ${
           isScoreDecreasing ? "text-red-500" : "text-white"
-        }`} 
+        }`}
       >
         Score: {score}
-        
         <div className="flex items-center space-x-2 mt-2">
           <img src={getShipImage()} alt="Current Ship" className="w-6 h-6" />
           {getNextShipImage() && (
@@ -332,8 +346,6 @@ function App() {
             </>
           )}
         </div>
-        {/* Ship level */}
-        {/* <div className="text-lg font-normal">{getScoreLevel()}</div>  */}
       </div>
       {scoreAnimations.map((animation) => (
         <ScoreAnimation key={animation.id} animation={animation} />

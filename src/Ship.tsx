@@ -1,7 +1,7 @@
 import React from "react";
 
 interface ShipProps {
-  position: { x: number };
+  position: { x: number; y: number }; // Hem x hem y koordinatını al
   size: number;
   image: string;
   isFading: boolean;
@@ -10,13 +10,14 @@ interface ShipProps {
 const Ship: React.FC<ShipProps> = ({ position, size, image, isFading }) => {
   return (
     <div
-      className={`absolute bottom-10 ${isFading ? "fade-out" : ""}`}
+      className={`absolute ${isFading ? "fade-out" : ""}`}
       style={{
-        left: `${position.x}px`,
+        left: `${position.x}px`, // Yatay pozisyon
+        top: `${position.y}px`, // Dikey pozisyon ekledik
         width: `${size}px`,
         height: `${size}px`,
-        transform: "translate(-50%, 0)",
-        transformOrigin: "center",
+        transform: "translate(-50%, -50%)", // Merkezden hizalı
+        transformOrigin: "center", // Animasyon merkezi
       }}
     >
       <img
