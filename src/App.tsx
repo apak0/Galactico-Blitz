@@ -17,7 +17,8 @@ interface Enemy extends Position {
 
 interface Bullet extends Position {
   id: number;
-  isNeon?: boolean; // Neon mermi için
+  isNeon?: boolean; // Neon mermi (mavi, skor >= 500) için
+  isRedNeon?: boolean; // Kırmızı neon mermi (skor >= 200) için
 }
 
 interface ScoreAnimation {
@@ -133,13 +134,15 @@ function App() {
           id: Date.now() + "-left",
           x: shipPosition.x - 20, // Sol mermi, geminin solundan 20 piksel
           y: shipPosition.y - 30,
-          isNeon: score >= 500, // Skor 500 veya daha yüksekse neon mermi
+          isNeon: score >= 500, // Skor 500 veya daha yüksekse neon mavi (dikey)
+          isRedNeon: score >= 200 && score < 500, // Skor 200-499 arasında kırmızı neon
         },
         {
           id: Date.now() + "-right",
           x: shipPosition.x + 20, // Sağ mermi, geminin sağından 20 piksel
           y: shipPosition.y - 30,
-          isNeon: score >= 500, // Skor 500 veya daha yüksekse neon mermi
+          isNeon: score >= 500, // Skor 500 veya daha yüksekse neon mavi (dikey)
+          isRedNeon: score >= 200 && score < 500, // Skor 200-499 arasında kırmızı neon
         },
       ]);
     } else {
@@ -368,7 +371,7 @@ function App() {
         Time: {timeLeft}s
       </div>
       <div className="absolute top-0 right-0 text-white text-sm font-normal">
-        v1.0
+        v2.0
       </div>
       <div
         className={`absolute top-4 left-4 text-2xl font-bold transition-all duration-500 ${
