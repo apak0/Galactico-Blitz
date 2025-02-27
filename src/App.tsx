@@ -16,6 +16,7 @@ interface Enemy extends Position {
 
 interface Bullet extends Position {
   id: number;
+  isNeon?: boolean; // Yeni özellik: Neon mermi için
 }
 
 interface ScoreAnimation {
@@ -99,7 +100,7 @@ const useStarfield = (canvasId: string) => {
 function App() {
   const [shipPosition, setShipPosition] = useState<Position>({
     x: window.innerWidth / 2,
-    y: window.innerHeight - getShipSize(0), // getShipSize2(0) yerine getShipSize(0) kullandık
+    y: window.innerHeight - getShipSize(0), // Başlangıçta alt kısımda
   });
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
@@ -123,21 +124,50 @@ function App() {
   }, []);
 
   const shoot = useCallback(() => {
-    setBullets((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        x: shipPosition.x,
-        y: shipPosition.y - 30, // Mermiyi geminin üstünden ateşle
-      },
-    ]);
-  }, [shipPosition.x, shipPosition.y]);
+    if (score >= 100) {
+      // Skor 100 veya daha yüksekse, sağ ve sol taraftan iki mermi ateşle
+      setBullets((prev) => [
+        ...prev,
+        {
+          id: Date.now() + "-left",
+          x: shipPosition.x - 20, // Sol mermi, geminin solundan 20 piksel
+          y: shipPosition.y - 30,
+          isNeon: score >= 500, // Skor 500 veya daha yüksekse neon mermi
+        },
+        {
+          id: Date.now() + "-right",
+          x: shipPosition.x + 20, // Sağ mermi, geminin sağından 20 piksel
+          y: shipPosition.y - 30,
+          isNeon: score >= 500, // Skor 500 veya daha yüksekse neon mermi
+        },
+      ]);
+    } else {
+      // Skor 100’den düşükse, tek mermi ateşle (mevcut mantık)
+      setBullets((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          x: shipPosition.x,
+          y: shipPosition.y - 30,
+        },
+      ]);
+    }
+  }, [shipPosition.x, shipPosition.y, score]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (gameOver) return;
-      keysPressed.current[event.key] = true;
-      if (event.key === " ") shoot();
+      if (!keysPressed.current[event.key]) { // Tuş daha önce basılmamışsa ateş et
+        keysPressed.current[event.key] = true;
+        if (event.key === " ") {
+          const currentTime = performance.now();
+          const timeSinceLastShot = currentTime - lastShotTime.current;
+          if (timeSinceLastShot >= 200) { // 200 milisaniye (saniyede 5 mermi) kontrolü
+            shoot();
+            lastShotTime.current = currentTime;
+          }
+        }
+      }
     },
     [gameOver, shoot]
   );
@@ -178,19 +208,11 @@ function App() {
           newY = Math.max(30, prev.y - moveSpeed * deltaTime); // Yukarı hareket
         }
         if (keysPressed.current["ArrowDown"]) {
-          newY = Math.min(window.innerHeight - getShipSize(), prev.y + moveSpeed * deltaTime); // Aşağı hareket
+          newY = Math.min(window.innerHeight - getShipSize(score), prev.y + moveSpeed * deltaTime); // Aşağı hareket
         }
 
         return { x: newX, y: newY };
       });
-
-      if (keysPressed.current[" "]) {
-        const timeSinceLastShot = currentTime - lastShotTime.current;
-        if (timeSinceLastShot >= 200) {
-          shoot();
-          lastShotTime.current = currentTime;
-        }
-      }
 
       setBullets((prev) =>
         prev
@@ -218,11 +240,11 @@ function App() {
               ]);
               return false;
             }
-            const shipSize = getShipSize();
+            const shipSize = getShipSize(score);
             const enemySize = 30;
             if (
               Math.abs(e.x - shipPosition.x) <= shipSize / 2 + enemySize / 2 &&
-              Math.abs(e.y - shipPosition.y) <= shipSize / 2 + enemySize / 2 && // shipPosition.y ile güncelledik
+              Math.abs(e.y - shipPosition.y) <= shipSize / 2 + enemySize / 2 &&
               !fadingEntities.some((fe) => fe.type === "ship")
             ) {
               const collisionId = generateUniqueId();
@@ -299,7 +321,7 @@ function App() {
     return () => {
       if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
     };
-  }, [gameOver, generateUniqueId, shipPosition.x, shipPosition.y, collisionEffects, fadingEntities, shoot]);
+  }, [gameOver, generateUniqueId, shipPosition.x, shipPosition.y, collisionEffects, fadingEntities, shoot, score]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -363,7 +385,7 @@ function App() {
             <p className="text-2xl">Final Score: {score}</p>
             <button
               className="mt-4 px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              onClick={() => window.location.reload()}
+              onClick={() => window.location.reload()} // Kapanış parantezi düzeltildi
             >
               Play Again
             </button>
@@ -372,7 +394,7 @@ function App() {
       )}
       <Ship
         position={shipPosition}
-        size={getShipSize()}
+        size={getShipSize(score)}
         image={getShipImage()}
         isFading={fadingEntities.some((fe) => fe.type === "ship")}
       />
