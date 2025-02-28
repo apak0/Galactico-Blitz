@@ -6,7 +6,7 @@ interface EnemyProps {
 }
 
 const Enemy: React.FC<EnemyProps> = ({ enemy, isFading }) => {
-  const size = enemy.isBoss ? 100 : 30; // Final boss daha büyük
+  const size = enemy.isBoss ? 200 : 30; // Final boss boyutunu 2 katına çıkardık (200px)
   return (
     <div
       className={`absolute ${isFading ? "fade-out" : ""}`}

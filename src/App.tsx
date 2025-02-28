@@ -121,7 +121,7 @@ function App() {
   const [collisionEffects, setCollisionEffects] = useState<CollisionEffect[]>([]);
   const [fadingEntities, setFadingEntities] = useState<FadingEntity[]>([]);
   const [finalBoss, setFinalBoss] = useState<Enemy | null>(null); // Final boss state’i
-  const [bossHP, setBossHP] = useState(20); // Final boss’un HP’si (20 mermi isabeti için)
+  const [bossHP, setBossHP] = useState(100); // Final boss’un HP’si (100’e artırıldı)
   const [isBossExploding, setIsBossExploding] = useState(false); // Boss patlama durumu
   const [gameWon, setGameWon] = useState(false); // Oyunu kazandık mı?
 
@@ -131,6 +131,7 @@ function App() {
   const lastFrameTime = useRef<number>(performance.now());
   const lastShotTime = useRef<number>(0);
   const lastBossShotTime = useRef<number>(0); // Boss’un son mermi atış zamanı
+  const lastDirectionChange = useRef<number>(0); // Boss’un son yön değişim zamanı
 
   const generateUniqueId = useCallback(() => {
     animationCounter.current += 1;
@@ -229,12 +230,12 @@ function App() {
         }
       }
 
-      // Mermilerin hareketi
+      // Mermilerin hareketi (ship mermileri yukarı, boss mermileri aşağı)
       setBullets((prev) =>
         prev
           .map((b) => ({
             ...b,
-            y: b.y - (b.isBossBullet ? 5 / 0.016 : 5 / 0.016) * deltaTime, // Boss mermileri için aynı hız
+            y: b.isBossBullet ? b.y + (2 / 0.016) * deltaTime : b.y - (5 / 0.016) * deltaTime, // Boss mermileri aşağı (hız 2 katına çıkarıldı), ship mermileri yukarı
           }))
           .filter((b) => b.y > 0 && b.y < window.innerHeight)
       );
@@ -244,7 +245,7 @@ function App() {
         let newEnemies = prev.map((e) => ({
           ...e,
           y: e.isBoss
-            ? 50 // Final boss, ekranın üstünde sabit kalır (dikey olarak)
+            ? 150 // Final boss, ekranın üstünde sabit kalır (dikey olarak, 200px boyut için aşağıya indirildi)
             : fadingEntities.some((fe) => fe.id === e.id.toString())
             ? e.y
             : e.y + (2 * deltaTime) / 0.016,
@@ -336,22 +337,35 @@ function App() {
         setFinalBoss({
           id: Date.now(),
           x: window.innerWidth / 2,
-          y: 50,
+          y: 150, // Boss’u aşağıya indirdik (200px boyut için tamamen görünür)
           hits: 0,
           image: "/assets/final-boss.png",
           isBoss: true,
-          hp: 20, // Başlangıç HP’si
+          hp: 100, // Başlangıç HP’si (100’e artırıldı)
         });
       }
 
-      // Final boss’un hareketi (sağa sola rastgele)
+      // Final boss’un smooth ve sürekli hareketi (sağa sola, sınırda yön değiştirme)
       if (finalBoss && !isBossExploding) {
         setFinalBoss((prev) => {
           if (!prev) return null;
-          const moveSpeed = 100 / 0.016; // Boss’un hareket hızı (daha yavaş)
-          const direction = Math.random() < 0.5 ? -1 : 1; // Rastgele yön
+          const moveSpeed = 12 / 0.016; // Boss’un hareket hızı (senin belirttiğin gibi)
+          let direction = prev.direction || (Math.random() < 0.5 ? -1 : 1); // Varsayılan yön
+          const currentTime = Date.now();
+
+          // Ekran sınırlarına çarptığında yönü tersine çevir
           const newX = Math.max(50, Math.min(window.innerWidth - 50, prev.x + moveSpeed * direction * deltaTime));
-          return { ...prev, x: newX, y: 50 }; // Y koordinatı sabit 50
+          if (newX === 50 || newX === window.innerWidth - 50) {
+            direction *= -1; // Sınırda yönü tersine çevir
+          }
+
+          // 2 saniyede bir rastgele yön değiştir (sınır kontrolünden bağımsız)
+          if (currentTime - lastDirectionChange.current >= 2000) {
+            direction = Math.random() < 0.5 ? -1 : 1; // Yeni yön
+            lastDirectionChange.current = currentTime;
+          }
+
+          return { ...prev, x: newX, y: 150, direction }; // Y koordinatı sabit 150, yön güncellendi
         });
       }
 
@@ -365,7 +379,7 @@ function App() {
             {
               id: bossBulletId,
               x: finalBoss.x,
-              y: finalBoss.y + 30, // Boss’un altından ateş
+              y: finalBoss.y + 30, // Boss’un altından ateş (y: 150 için güncellendi)
               isBossBullet: true, // Boss mermisi olarak işaretle
             },
           ]);
@@ -403,7 +417,7 @@ function App() {
               ) {
                 bulletsCopy.splice(bIndex, 1);
                 setBossHP((prevHP) => {
-                  const newHP = prevHP - 1;
+                  const newHP = prevHP - 1; // Her mermi isabetinde 1 HP azalır (100 HP için 100 mermi)
                   if (newHP <= 0) {
                     setIsBossExploding(true);
                     setTimeout(() => {
@@ -554,7 +568,7 @@ function App() {
       </div>
       {finalBoss && !isBossExploding && (
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-white text-xl font-bold">
-          Boss HP: {bossHP}/20
+          Boss HP: {bossHP}/100
         </div>
       )}
       <div
@@ -639,7 +653,10 @@ function App() {
         />
       )}
       {bullets.map((bullet) => (
-        <Bullet key={bullet.id} bullet={bullet} />
+        <Bullet
+          key={bullet.id}
+          bullet={bullet}
+        />
       ))}
     </div>
   );
