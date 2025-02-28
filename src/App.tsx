@@ -564,7 +564,7 @@ function App() {
         Time: {timeLeft}s
       </div>
       <div className="absolute top-0 right-0 text-white text-sm font-normal">
-        v1.0
+        v3.2
       </div>
       {finalBoss && !isBossExploding && (
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-white text-xl font-bold">
