@@ -412,7 +412,7 @@ function App() {
       {gameOver && !collisionEffects.length && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75">
           <div className="text-center text-white">
-            <h2 className="text-4xl font-bold mb-4">Game Over!</h2>
+            <h2 className="text-4xl font-bold mb-4">Game Over!!!</h2>
             <p className="text-2xl">Final Score: {score}</p>
             <button
               className="mt-4 px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
