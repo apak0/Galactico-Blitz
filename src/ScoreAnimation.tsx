@@ -9,7 +9,7 @@ const ScoreAnimation: React.FC<ScoreAnimationProps> = ({ animation }) => {
     <div
       key={animation.id}
       className={`absolute text-lg font-bold ${
-        animation.value > 0 ? "text-green-500" : "text-red-500"
+        animation.value > 0 ? "text-green-600" : "text-red-600"
       }`}
       style={{
         left: `${animation.x}px`,
