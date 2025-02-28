@@ -321,7 +321,7 @@ function App() {
                   { type: "enemy", x: enemy.x, y: enemy.y, id: enemy.id.toString() },
                 ]);
                 // Puanları düşman görseline göre ayarla (çarpma olmadan)
-                let scoreIncrease = 10;
+                let scoreIncrease = 20;
                 if (enemy.image === "/assets/enemy-2.png") {
                   scoreIncrease = 15;
                 } else if (enemy.image === "/assets/enemy-3.png") {
