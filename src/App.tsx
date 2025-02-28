@@ -116,7 +116,7 @@ function App() {
   const [enemies, setEnemies] = useState<Enemy[]>([]);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(120);
   const [scoreAnimations, setScoreAnimations] = useState<ScoreAnimation[]>([]);
   const [isScoreDecreasing, setIsScoreDecreasing] = useState(false);
   const [collisionEffects, setCollisionEffects] = useState<CollisionEffect[]>([]);
