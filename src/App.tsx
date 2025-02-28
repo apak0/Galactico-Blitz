@@ -373,7 +373,7 @@ function App() {
   }, [handleKeyDown, handleKeyUp]);
 
   const getShipImage = () => {
-    console.log("Current Score for Ship Size:", score); // Ship size için skor kontrolü
+    
     return score >= 500
       ? "/assets/spaces-ship-huge.png"
       : score >= 200
