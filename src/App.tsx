@@ -193,7 +193,7 @@ function App() {
       setShipPosition((prev) => {
         let newX = prev.x;
         let newY = prev.y;
-        const moveSpeed = 8 / 0.016; // Sabit hız, yumuşaklık yok
+        const moveSpeed = 16 / 0.016; // Hızı iki katına çıkardık (16 piksel/saniye)
 
         if (keysPressed.current["ArrowLeft"]) {
           newX = Math.max(30, prev.x - moveSpeed * deltaTime);
@@ -236,12 +236,16 @@ function App() {
         if (!fadingEntities.some((fe) => fe.type === "ship")) {
           newEnemies = newEnemies.filter((e) => {
             if (e.y >= window.innerHeight) {
-              setScore((s) => s - 10);
+              setScore((s) => {
+                const newScore = s - 10;
+                console.log("Score Decrease (After Exit):", newScore); // State güncellemesi sonrası skor
+                return newScore;
+              });
               setIsScoreDecreasing(true);
               setTimeout(() => setIsScoreDecreasing(false), 500);
               setScoreAnimations((prev) => [
                 ...prev,
-                { value: -20, id: generateUniqueId(), x: e.x, y: window.innerHeight - 50 },
+                { value: -10, id: generateUniqueId(), x: e.x, y: window.innerHeight - 50 },
               ]);
               return false;
             }
@@ -317,17 +321,22 @@ function App() {
                   { type: "enemy", x: enemy.x, y: enemy.y, id: enemy.id.toString() },
                 ]);
                 // Puanları düşman görseline göre ayarla (çarpma olmadan)
-                let scoreIncrease = 10; 
+                let scoreIncrease = 10;
                 if (enemy.image === "/assets/enemy-2.png") {
-                  scoreIncrease = 15; 
+                  scoreIncrease = 15;
                 } else if (enemy.image === "/assets/enemy-3.png") {
                   scoreIncrease = 20;
                 }
-                setScore((s) => s + scoreIncrease); // Puanı çarpma olmadan ekle    
+                setScore((s) => {
+                  const newScore = s + scoreIncrease;
+                  console.log("Score Increase (After Kill):", newScore); // State güncellemesi sonrası skor
+                  return newScore;
+                });
                 setScoreAnimations((prev) => [
                   ...prev,
-                  { value: scoreIncrease * 2, id: generateUniqueId(), x: enemy.x, y: enemy.y }, // Tam puanı göster (çarpma olmadan)
+                  { value: scoreIncrease, id: generateUniqueId(), x: enemy.x, y: enemy.y }, // Çarpma olmadan tam puanı göster
                 ]);
+                console.log("Score Increase for Enemy:", enemy.image, "Score Increase:", scoreIncrease, "Animation Value:", scoreIncrease); // Debug için log
                 setTimeout(() => {
                   setCollisionEffects((prev) => prev.filter((ce) => ce.id !== collisionId));
                   setEnemies((prev) => prev.filter((e) => e.id !== enemy.id));
@@ -363,12 +372,14 @@ function App() {
     };
   }, [handleKeyDown, handleKeyUp]);
 
-  const getShipImage = () =>
-    score >= 500
+  const getShipImage = () => {
+    console.log("Current Score for Ship Size:", score); // Ship size için skor kontrolü
+    return score >= 500
       ? "/assets/spaces-ship-huge.png"
       : score >= 200
       ? "/assets/spaces-ship-middle.png"
       : "/assets/spaces-ship-small.png";
+  };
   const getNextShipImage = () =>
     score >= 500 ? null : score >= 200 ? "/assets/spaces-ship-huge.png" : "/assets/spaces-ship-middle.png";
   const getScoreLevel = () =>
@@ -412,7 +423,7 @@ function App() {
       {gameOver && !collisionEffects.length && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75">
           <div className="text-center text-white">
-            <h2 className="text-4xl font-bold mb-4">Game Over!!!</h2>
+            <h2 className="text-4xl font-bold mb-4">Game Over!</h2>
             <p className="text-2xl">Final Score: {score}</p>
             <button
               className="mt-4 px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"

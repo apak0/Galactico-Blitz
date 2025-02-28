@@ -18,8 +18,8 @@ const ScoreAnimation: React.FC<ScoreAnimationProps> = ({ animation }) => {
         animation: "fadeOut 1s linear forwards",
       }}
     >
-      {animation.value > 0 ? "+" : ""}
-      {animation.value}
+      {animation.value *2 > 0 ? "+" : ""}
+      {animation.value *2}
     </div>
   );
 };
