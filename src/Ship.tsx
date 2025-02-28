@@ -1,7 +1,7 @@
 import React from "react";
 
 interface ShipProps {
-  position: { x: number; y: number }; // Hem x hem y koordinatını al
+  position: { x: number; y: number };
   size: number;
   image: string;
   isFading: boolean;
@@ -12,12 +12,12 @@ const Ship: React.FC<ShipProps> = ({ position, size, image, isFading }) => {
     <div
       className={`absolute ${isFading ? "fade-out" : ""}`}
       style={{
-        left: `${position.x}px`, // Yatay pozisyon
-        top: `${position.y}px`, // Dikey pozisyon ekledik
+        left: `${position.x}px`,
+        top: `${position.y}px`,
         width: `${size}px`,
         height: `${size}px`,
-        transform: "translate(-50%, -50%)", // Merkezden hizalı
-        transformOrigin: "center", // Animasyon merkezi
+        transform: "translate(-50%, -50%)",
+        transformOrigin: "center",
       }}
     >
       <img

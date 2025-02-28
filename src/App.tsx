@@ -9,16 +9,20 @@ interface Position {
   y: number;
 }
 
+// Enemy interface
 interface Enemy extends Position {
   id: number;
   hits: number;
-  image: string; // Düşman görseli için
+  image: string;
+  isBoss?: boolean; // Final boss'u belirlemek için
+  hp?: number; // Boss'un canını takip etmek için
 }
 
 interface Bullet extends Position {
-  id: string; // id'yi number yerine string olarak güncelledim
+  id: string;
   isNeon?: boolean;
   isRedNeon?: boolean;
+  isBossBullet?: boolean; // Boss mermilerini ayırt etmek için
 }
 
 interface ScoreAnimation {
@@ -41,8 +45,9 @@ interface FadingEntity {
   id: string;
 }
 
-// getShipSize fonksiyonunu component dışına taşıyoruz
-const getShipSize = (score: number) => (score >= 1000 ? 180 : score >= 500 ? 120 : 60);
+// Uzay gemisi boyutunu skor seviyesine göre hesapla
+const getShipSize = (score: number) =>
+  score >= 1000 ? 180 : score >= 500 ? 120 : 60;
 
 const useStarfield = (canvasId: string) => {
   useEffect(() => {
@@ -53,13 +58,15 @@ const useStarfield = (canvasId: string) => {
     const n = 812;
     const starRatio = 115;
     const starSpeed = 0.5;
-    const stars = new Array(n).fill(0).map(() => [
-      Math.random() * w * 2 - w,
-      Math.random() * h * 2 - h,
-      Math.round(Math.random() * ((w + h) / 2)),
-      0,
-      0,
-    ]);
+    const stars = new Array(n)
+      .fill(0)
+      .map(() => [
+        Math.random() * w * 2 - w,
+        Math.random() * h * 2 - h,
+        Math.round(Math.random() * ((w + h) / 2)),
+        0,
+        0,
+      ]);
 
     const resize = () => {
       w = window.innerWidth;
@@ -80,7 +87,7 @@ const useStarfield = (canvasId: string) => {
         stars[i][3] = w / 2 + (x / stars[i][2]) * starRatio;
         stars[i][4] = h / 2 + (y / stars[i][2]) * starRatio;
 
-        context.lineWidth = 2 * (1 - 1 / ((w + h) / 2) * stars[i][2]);
+        context.lineWidth = 2 * (1 - (1 / ((w + h) / 2)) * stars[i][2]);
         context.beginPath();
         context.moveTo(prevX, prevY);
         context.lineTo(stars[i][3], stars[i][4]);
@@ -113,60 +120,61 @@ function App() {
   const [isScoreDecreasing, setIsScoreDecreasing] = useState(false);
   const [collisionEffects, setCollisionEffects] = useState<CollisionEffect[]>([]);
   const [fadingEntities, setFadingEntities] = useState<FadingEntity[]>([]);
+  const [finalBoss, setFinalBoss] = useState<Enemy | null>(null); // Final boss state’i
+  const [bossHP, setBossHP] = useState(20); // Final boss’un HP’si (20 mermi isabeti için)
+  const [isBossExploding, setIsBossExploding] = useState(false); // Boss patlama durumu
+  const [gameWon, setGameWon] = useState(false); // Oyunu kazandık mı?
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const animationFrameId = useRef<number>();
   const animationCounter = useRef(0);
   const lastFrameTime = useRef<number>(performance.now());
   const lastShotTime = useRef<number>(0);
+  const lastBossShotTime = useRef<number>(0); // Boss’un son mermi atış zamanı
 
   const generateUniqueId = useCallback(() => {
     animationCounter.current += 1;
     return `${Date.now()}-${animationCounter.current}`;
   }, []);
 
-  const shoot = useCallback(
-    () => {
-      if (score >= 100) {
-        // Skor 100 veya daha yüksekse, sağ ve sol taraftan iki mermi ateşle
-        setBullets((prev) => [
-          ...prev,
-          {
-            id: `${Date.now()}-left`, // Number'ı string'e çevir
-            x: shipPosition.x - 20, // Sol mermi, geminin solundan 20 piksel
-            y: shipPosition.y - 30,
-            isNeon: score >= 500, // Skor 500 veya daha yüksekse neon mavi (dikey)
-            isRedNeon: score >= 200 && score < 500, // Skor 200-499 arasında kırmızı neon
-          },
-          {
-            id: `${Date.now()}-right`, // Number'ı string'e çevir
-            x: shipPosition.x + 20, // Sağ mermi, geminin sağından 20 piksel
-            y: shipPosition.y - 30,
-            isNeon: score >= 500, // Skor 500 veya daha yüksekse neon mavi (dikey)
-            isRedNeon: score >= 200 && score < 500, // Skor 200-499 arasında kırmızı neon
-          },
-        ]);
-      } else {
-        // Skor 100’den düşükse, tek mermi ateşle (mevcut mantık)
-        setBullets((prev) => [
-          ...prev,
-          {
-            id: `${Date.now()}`, // Number'ı string'e çevir
-            x: shipPosition.x,
-            y: shipPosition.y - 30,
-          },
-        ]);
-      }
-    },
-    [shipPosition.x, shipPosition.y, score] // Bağımlılıklar
-  );
+  // Mermi atış mantığı
+  const shoot = useCallback(() => {
+    if (score >= 100) {
+      setBullets((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-left`,
+          x: shipPosition.x - 20,
+          y: shipPosition.y - 30,
+          isNeon: score >= 500,
+          isRedNeon: score >= 200 && score < 500,
+        },
+        {
+          id: `${Date.now()}-right`,
+          x: shipPosition.x + 20,
+          y: shipPosition.y - 30,
+          isNeon: score >= 500,
+          isRedNeon: score >= 200 && score < 500,
+        },
+      ]);
+    } else {
+      setBullets((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}`,
+          x: shipPosition.x,
+          y: shipPosition.y - 30,
+        },
+      ]);
+    }
+  }, [shipPosition.x, shipPosition.y, score]);
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (gameOver) return;
+      if (gameOver || gameWon) return;
       keysPressed.current[event.key] = true;
     },
-    [gameOver]
+    [gameOver, gameWon]
   );
 
   const handleKeyUp = useCallback((event: KeyboardEvent) => {
@@ -176,24 +184,25 @@ function App() {
   useStarfield("field");
 
   useEffect(() => {
-    if (gameOver) return;
+    if (gameOver || gameWon) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev <= 0 ? (setGameOver(true), 0) : prev - 1));
     }, 1000);
     return () => clearInterval(timer);
-  }, [gameOver]);
+  }, [gameOver, gameWon]);
 
   useEffect(() => {
-    if (gameOver) return;
+    if (gameOver || gameWon) return;
 
     const gameLoop = (currentTime: number) => {
       const deltaTime = (currentTime - lastFrameTime.current) / 1000;
       lastFrameTime.current = currentTime;
 
+      // Uzay gemisinin hareketi (artırılmış hız)
       setShipPosition((prev) => {
         let newX = prev.x;
         let newY = prev.y;
-        const moveSpeed = 16 / 0.016; // Hızı iki katına çıkardık (16 piksel/saniye)
+        const moveSpeed = 16 / 0.016; // Uzay gemisi hızını iki katına çıkardık
 
         if (keysPressed.current["ArrowLeft"]) {
           newX = Math.max(30, prev.x - moveSpeed * deltaTime);
@@ -202,50 +211,62 @@ function App() {
           newX = Math.min(window.innerWidth - 30, prev.x + moveSpeed * deltaTime);
         }
         if (keysPressed.current["ArrowUp"]) {
-          newY = Math.max(30, prev.y - moveSpeed * deltaTime); // Yukarı hareket
+          newY = Math.max(30, prev.y - moveSpeed * deltaTime);
         }
         if (keysPressed.current["ArrowDown"]) {
-          newY = Math.min(window.innerHeight - getShipSize(score), prev.y + moveSpeed * deltaTime); // Aşağı hareket
+          newY = Math.min(window.innerHeight - getShipSize(score), prev.y + moveSpeed * deltaTime);
         }
 
         return { x: newX, y: newY };
       });
 
+      // Boşluk tuşuyla mermi atışı
       if (keysPressed.current[" "]) {
         const timeSinceLastShot = currentTime - lastShotTime.current;
-        if (timeSinceLastShot >= 150) { // 150 milisaniye (saniyede yaklaşık 6.67 mermi) kontrolü
+        if (timeSinceLastShot >= 150) {
           shoot();
           lastShotTime.current = currentTime;
         }
       }
 
+      // Mermilerin hareketi
       setBullets((prev) =>
         prev
-          .map((b) => ({ ...b, y: b.y - (5 / 0.016) * deltaTime }))
-          .filter((b) => b.y > 0)
+          .map((b) => ({
+            ...b,
+            y: b.y - (b.isBossBullet ? 5 / 0.016 : 5 / 0.016) * deltaTime, // Boss mermileri için aynı hız
+          }))
+          .filter((b) => b.y > 0 && b.y < window.innerHeight)
       );
 
+      // Düşmanların hareketi ve puanlama
       setEnemies((prev) => {
         let newEnemies = prev.map((e) => ({
           ...e,
-          y:
-            fadingEntities.some((fe) => fe.id === e.id.toString())
-              ? e.y
-              : e.y + 2 * deltaTime / 0.016,
+          y: e.isBoss
+            ? 50 // Final boss, ekranın üstünde sabit kalır (dikey olarak)
+            : fadingEntities.some((fe) => fe.id === e.id.toString())
+            ? e.y
+            : e.y + (2 * deltaTime) / 0.016,
         }));
         if (!fadingEntities.some((fe) => fe.type === "ship")) {
           newEnemies = newEnemies.filter((e) => {
-            if (e.y >= window.innerHeight) {
+            if (e.y >= window.innerHeight && !e.isBoss) {
               setScore((s) => {
                 const newScore = s - 10;
-                console.log("Score Decrease (After Exit):", newScore); // State güncellemesi sonrası skor
+                console.log("Score Decrease (After Exit):", newScore);
                 return newScore;
               });
               setIsScoreDecreasing(true);
               setTimeout(() => setIsScoreDecreasing(false), 500);
               setScoreAnimations((prev) => [
                 ...prev,
-                { value: -10, id: generateUniqueId(), x: e.x, y: window.innerHeight - 50 },
+                {
+                  value: -10,
+                  id: generateUniqueId(),
+                  x: e.x,
+                  y: window.innerHeight - 50,
+                },
               ]);
               return false;
             }
@@ -254,13 +275,22 @@ function App() {
             if (
               Math.abs(e.x - shipPosition.x) <= shipSize / 2 + enemySize / 2 &&
               Math.abs(e.y - shipPosition.y) <= shipSize / 2 + enemySize / 2 &&
-              !fadingEntities.some((fe) => fe.type === "ship")
+              !fadingEntities.some((fe) => fe.type === "ship") &&
+              !e.isBoss // Boss’un ship’e çarpmasını engelle
             ) {
               const collisionId = generateUniqueId();
-              setCollisionEffects((prev) => [...prev, { x: e.x, y: e.y, id: collisionId }]);
+              setCollisionEffects((prev) => [
+                ...prev,
+                { x: e.x, y: e.y, id: collisionId },
+              ]);
               setFadingEntities((prev) => [
                 ...prev,
-                { type: "ship", x: shipPosition.x, y: shipPosition.y, id: collisionId + "-ship" },
+                {
+                  type: "ship",
+                  x: shipPosition.x,
+                  y: shipPosition.y,
+                  id: collisionId + "-ship",
+                },
                 { type: "enemy", x: e.x, y: e.y, id: e.id.toString() },
               ]);
               setTimeout(() => {
@@ -272,10 +302,10 @@ function App() {
             return true;
           });
         }
-        if (Math.random() < 0.02) {
+        // Skor seviyesine bağlı rastgele düşman yaratma (final boss’tan bağımsız)
+        if (!finalBoss && Math.random() < 0.02) { // Final boss yokken düşman yarat
           let enemyImage;
           if (score >= 540) {
-            // Skor 540 veya daha yüksekse, düşmanlar enemy, enemy-2, ve enemy-3 arasında rastgele dağıtılır
             const random = Math.random();
             if (random < 0.33) {
               enemyImage = "/assets/enemy.png";
@@ -285,10 +315,8 @@ function App() {
               enemyImage = "/assets/enemy-3.png";
             }
           } else if (score >= 250) {
-            // Skor 250-539 arasında, düşmanlar enemy ve enemy-2 arasında %50-%50 dağıtılır
             enemyImage = Math.random() < 0.5 ? "/assets/enemy.png" : "/assets/enemy-2.png";
           } else {
-            // Skor 250’den düşükse, tüm düşmanlar enemy ile yaratılır
             enemyImage = "/assets/enemy.png";
           }
           newEnemies.push({
@@ -296,12 +324,107 @@ function App() {
             x: Math.random() * (window.innerWidth - 60) + 30,
             y: 0,
             hits: 0,
-            image: enemyImage, // Düşman görselini belirle
+            image: enemyImage,
           });
         }
         return newEnemies;
       });
 
+      // Skor 1100’e ulaştığında final boss’u garanti şekilde spawn et
+      if (score >= 1100 && !finalBoss && !enemies.some((e) => e.isBoss)) {
+        console.log("Spawning Final Boss at score:", score); // Debug için log
+        setFinalBoss({
+          id: Date.now(),
+          x: window.innerWidth / 2,
+          y: 50,
+          hits: 0,
+          image: "/assets/final-boss.png",
+          isBoss: true,
+          hp: 20, // Başlangıç HP’si
+        });
+      }
+
+      // Final boss’un hareketi (sağa sola rastgele)
+      if (finalBoss && !isBossExploding) {
+        setFinalBoss((prev) => {
+          if (!prev) return null;
+          const moveSpeed = 100 / 0.016; // Boss’un hareket hızı (daha yavaş)
+          const direction = Math.random() < 0.5 ? -1 : 1; // Rastgele yön
+          const newX = Math.max(50, Math.min(window.innerWidth - 50, prev.x + moveSpeed * direction * deltaTime));
+          return { ...prev, x: newX, y: 50 }; // Y koordinatı sabit 50
+        });
+      }
+
+      // Final boss’un mermi atışı (ship’e doğru)
+      if (finalBoss && !isBossExploding) {
+        const timeSinceLastBossShot = currentTime - lastBossShotTime.current;
+        if (timeSinceLastBossShot >= 1000) { // Her 1 saniyede bir mermi
+          const bossBulletId = `${Date.now()}-boss`;
+          setBullets((prev) => [
+            ...prev,
+            {
+              id: bossBulletId,
+              x: finalBoss.x,
+              y: finalBoss.y + 30, // Boss’un altından ateş
+              isBossBullet: true, // Boss mermisi olarak işaretle
+            },
+          ]);
+          lastBossShotTime.current = currentTime;
+        }
+      }
+
+      // Boss mermilerinin ship’e çarpması kontrolü
+      setBullets((prev) =>
+        prev.map((bullet) => {
+          if (bullet.isBossBullet) {
+            const shipSize = getShipSize(score);
+            if (
+              Math.abs(bullet.x - shipPosition.x) <= shipSize / 2 + 10 && // Mermi genişliği için 10
+              Math.abs(bullet.y - shipPosition.y) <= shipSize / 2 + 10 &&
+              !fadingEntities.some((fe) => fe.type === "ship")
+            ) {
+              setGameOver(true); // Boss mermisi ship’e çarptığında oyun biter
+              return null; // Mermiyi kaldır
+            }
+          }
+          return bullet;
+        }).filter((bullet) => bullet !== null) as Bullet[]
+      );
+
+      // Mermilerle boss çarpışması ve HP azaltma
+      if (finalBoss && !isBossExploding) {
+        setBullets((prevBullets) => {
+          const bulletsCopy = [...prevBullets];
+          bulletsCopy.forEach((bullet, bIndex) => {
+            if (!bullet.isBossBullet && finalBoss) {
+              if (
+                Math.abs(bullet.x - finalBoss.x) < 50 && // Boss’un genişliği için 50
+                Math.abs(bullet.y - finalBoss.y) < 50
+              ) {
+                bulletsCopy.splice(bIndex, 1);
+                setBossHP((prevHP) => {
+                  const newHP = prevHP - 1;
+                  if (newHP <= 0) {
+                    setIsBossExploding(true);
+                    setTimeout(() => {
+                      setFinalBoss(null);
+                      setIsBossExploding(false);
+                      setGameWon(true);
+                    }, 3000); // Patlama 3 saniye sürer
+                    setTimeout(() => {
+                      setFadingEntities((prev) => prev.filter((fe) => fe.id !== finalBoss.id.toString()));
+                    }, 2000); // Boss 2 saniye içinde kaybolur
+                  }
+                  return newHP;
+                });
+              }
+            }
+          });
+          return bulletsCopy;
+        });
+      }
+
+      // Mermilerle normal düşman çarpışması ve patlama
       setBullets((prevBullets) => {
         const bulletsCopy = [...prevBullets];
         setEnemies((prevEnemies) => {
@@ -309,13 +432,18 @@ function App() {
           bulletsCopy.forEach((bullet, bIndex) => {
             enemiesCopy.forEach((enemy, eIndex) => {
               if (
+                !enemy.isBoss && // Sadece normal düşmanlar için
                 Math.abs(bullet.x - enemy.x) < 30 &&
                 Math.abs(bullet.y - enemy.y) < 30 &&
-                !fadingEntities.some((fe) => fe.id === enemy.id.toString())
+                !fadingEntities.some((fe) => fe.id === enemy.id.toString()) &&
+                !bullet.isBossBullet // Boss mermileri düşmanlara zarar vermez
               ) {
                 const collisionId = generateUniqueId();
                 bulletsCopy.splice(bIndex, 1);
-                setCollisionEffects((prev) => [...prev, { x: enemy.x, y: enemy.y, id: collisionId }]);
+                setCollisionEffects((prev) => [
+                  ...prev,
+                  { x: enemy.x, y: enemy.y, id: collisionId },
+                ]);
                 setFadingEntities((prev) => [
                   ...prev,
                   { type: "enemy", x: enemy.x, y: enemy.y, id: enemy.id.toString() },
@@ -329,18 +457,30 @@ function App() {
                 }
                 setScore((s) => {
                   const newScore = s + scoreIncrease;
-                  console.log("Score Increase (After Kill):", newScore); // State güncellemesi sonrası skor
+                  console.log("Score Increase (After Kill):", newScore);
                   return newScore;
                 });
                 setScoreAnimations((prev) => [
                   ...prev,
-                  { value: scoreIncrease, id: generateUniqueId(), x: enemy.x, y: enemy.y }, // Çarpma olmadan tam puanı göster
+                  {
+                    value: scoreIncrease,
+                    id: generateUniqueId(),
+                    x: enemy.x,
+                    y: enemy.y,
+                  },
                 ]);
-                console.log("Score Increase for Enemy:", enemy.image, "Score Increase:", scoreIncrease, "Animation Value:", scoreIncrease); // Debug için log
+                console.log(
+                  "Score Increase for Enemy:",
+                  enemy.image,
+                  "Score Increase:",
+                  scoreIncrease,
+                  "Animation Value:",
+                  scoreIncrease
+                );
                 setTimeout(() => {
                   setCollisionEffects((prev) => prev.filter((ce) => ce.id !== collisionId));
                   setEnemies((prev) => prev.filter((e) => e.id !== enemy.id));
-                }, 1000);
+                }, 1000); // 1 saniye sonra düşman kaybolur
               }
             });
           });
@@ -349,6 +489,7 @@ function App() {
         return bulletsCopy;
       });
 
+      // Puan animasyonlarının süresini kontrol et
       setScoreAnimations((prev) =>
         prev.filter((a) => Date.now() - parseInt(a.id.split("-")[0]) < 1000)
       );
@@ -361,7 +502,19 @@ function App() {
     return () => {
       if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
     };
-  }, [gameOver, generateUniqueId, shipPosition.x, shipPosition.y, collisionEffects, fadingEntities, shoot, score]);
+  }, [
+    gameOver,
+    gameWon,
+    generateUniqueId,
+    shipPosition.x,
+    shipPosition.y,
+    collisionEffects,
+    fadingEntities,
+    shoot,
+    score,
+    finalBoss,
+    isBossExploding,
+  ]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -372,8 +525,9 @@ function App() {
     };
   }, [handleKeyDown, handleKeyUp]);
 
+  // Uzay gemisi görselini skor seviyesine göre belirle
   const getShipImage = () => {
-    
+    console.log("Current Score for Ship Size:", score);
     return score >= 500
       ? "/assets/spaces-ship-huge.png"
       : score >= 200
@@ -381,7 +535,11 @@ function App() {
       : "/assets/spaces-ship-small.png";
   };
   const getNextShipImage = () =>
-    score >= 500 ? null : score >= 200 ? "/assets/spaces-ship-huge.png" : "/assets/spaces-ship-middle.png";
+    score >= 500
+      ? null
+      : score >= 200
+      ? "/assets/spaces-ship-huge.png"
+      : "/assets/spaces-ship-middle.png";
   const getScoreLevel = () =>
     score >= 500 ? "Huge Ship" : score >= 200 ? "Middle Ship" : "Small Ship";
 
@@ -394,6 +552,11 @@ function App() {
       <div className="absolute top-0 right-0 text-white text-sm font-normal">
         v1.0
       </div>
+      {finalBoss && !isBossExploding && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-white text-xl font-bold">
+          Boss HP: {bossHP}/20
+        </div>
+      )}
       <div
         className={`absolute top-4 left-4 text-2xl font-bold transition-all duration-500 ${
           isScoreDecreasing ? "text-red-500" : "text-white"
@@ -420,6 +583,13 @@ function App() {
           style={{ left: effect.x, top: effect.y }}
         />
       ))}
+      {isBossExploding && finalBoss && (
+        <div
+          key={finalBoss.id}
+          className="absolute explosion-effect"
+          style={{ left: finalBoss.x, top: finalBoss.y }}
+        />
+      )}
       {gameOver && !collisionEffects.length && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75">
           <div className="text-center text-white">
@@ -427,6 +597,20 @@ function App() {
             <p className="text-2xl">Final Score: {score}</p>
             <button
               className="mt-4 px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              onClick={() => window.location.reload()}
+            >
+              Play Again
+            </button>
+          </div>
+        </div>
+      )}
+      {gameWon && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+          <div className="text-center text-white">
+            <h2 className="text-4xl font-bold mb-4">Congratulations!</h2>
+            <p className="text-2xl">You Won the Game!</p>
+            <button
+              className="mt-4 px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600"
               onClick={() => window.location.reload()}
             >
               Play Again
@@ -447,6 +631,13 @@ function App() {
           isFading={fadingEntities.some((fe) => fe.id === enemy.id.toString())}
         />
       ))}
+      {finalBoss && !isBossExploding && (
+        <Enemy
+          key={finalBoss.id}
+          enemy={finalBoss}
+          isFading={false}
+        />
+      )}
       {bullets.map((bullet) => (
         <Bullet key={bullet.id} bullet={bullet} />
       ))}

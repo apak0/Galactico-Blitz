@@ -1,10 +1,12 @@
 import React from "react";
+import "./index.css"
 
 interface ScoreAnimationProps {
   animation: { value: number; id: string; x: number; y: number };
 }
 
 const ScoreAnimation: React.FC<ScoreAnimationProps> = ({ animation }) => {
+  console.log("Rendering Score Animation:", animation); // Debug log ekle
   return (
     <div
       key={animation.id}
@@ -24,5 +26,6 @@ const ScoreAnimation: React.FC<ScoreAnimationProps> = ({ animation }) => {
   );
 };
 
-// fadeOut animasyonu için CSS (index.css veya ayrı bir stil dosyasında)
+
+
 export default ScoreAnimation;
