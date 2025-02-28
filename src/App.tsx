@@ -16,9 +16,9 @@ interface Enemy extends Position {
 }
 
 interface Bullet extends Position {
-  id: number;
-  isNeon?: boolean; // Neon mermi (mavi, skor >= 500) için
-  isRedNeon?: boolean; // Kırmızı neon mermi (skor >= 200) için
+  id: string; // id'yi number yerine string olarak güncelledim
+  isNeon?: boolean;
+  isRedNeon?: boolean;
 }
 
 interface ScoreAnimation {
@@ -125,38 +125,41 @@ function App() {
     return `${Date.now()}-${animationCounter.current}`;
   }, []);
 
-  const shoot = useCallback(() => {
-    if (score >= 100) {
-      // Skor 100 veya daha yüksekse, sağ ve sol taraftan iki mermi ateşle
-      setBullets((prev) => [
-        ...prev,
-        {
-          id: Date.now() + "-left",
-          x: shipPosition.x - 20, // Sol mermi, geminin solundan 20 piksel
-          y: shipPosition.y - 30,
-          isNeon: score >= 500, // Skor 500 veya daha yüksekse neon mavi (dikey)
-          isRedNeon: score >= 200 && score < 500, // Skor 200-499 arasında kırmızı neon
-        },
-        {
-          id: Date.now() + "-right",
-          x: shipPosition.x + 20, // Sağ mermi, geminin sağından 20 piksel
-          y: shipPosition.y - 30,
-          isNeon: score >= 500, // Skor 500 veya daha yüksekse neon mavi (dikey)
-          isRedNeon: score >= 200 && score < 500, // Skor 200-499 arasında kırmızı neon
-        },
-      ]);
-    } else {
-      // Skor 100’den düşükse, tek mermi ateşle (mevcut mantık)
-      setBullets((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          x: shipPosition.x,
-          y: shipPosition.y - 30,
-        },
-      ]);
-    }
-  }, [shipPosition.x, shipPosition.y, score]);
+  const shoot = useCallback(
+    () => {
+      if (score >= 100) {
+        // Skor 100 veya daha yüksekse, sağ ve sol taraftan iki mermi ateşle
+        setBullets((prev) => [
+          ...prev,
+          {
+            id: `${Date.now()}-left`, // Number'ı string'e çevir
+            x: shipPosition.x - 20, // Sol mermi, geminin solundan 20 piksel
+            y: shipPosition.y - 30,
+            isNeon: score >= 500, // Skor 500 veya daha yüksekse neon mavi (dikey)
+            isRedNeon: score >= 200 && score < 500, // Skor 200-499 arasında kırmızı neon
+          },
+          {
+            id: `${Date.now()}-right`, // Number'ı string'e çevir
+            x: shipPosition.x + 20, // Sağ mermi, geminin sağından 20 piksel
+            y: shipPosition.y - 30,
+            isNeon: score >= 500, // Skor 500 veya daha yüksekse neon mavi (dikey)
+            isRedNeon: score >= 200 && score < 500, // Skor 200-499 arasında kırmızı neon
+          },
+        ]);
+      } else {
+        // Skor 100’den düşükse, tek mermi ateşle (mevcut mantık)
+        setBullets((prev) => [
+          ...prev,
+          {
+            id: `${Date.now()}`, // Number'ı string'e çevir
+            x: shipPosition.x,
+            y: shipPosition.y - 30,
+          },
+        ]);
+      }
+    },
+    [shipPosition.x, shipPosition.y, score] // Bağımlılıklar
+  );
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
