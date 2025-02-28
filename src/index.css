@@ -45,6 +45,18 @@
   }
 }
 
+@keyframes damage-effect {
+  0% {
+    filter: none; /* Normal renk */
+  }
+  50% {
+    filter: brightness(0.8) sepia(1) hue-rotate(-50deg) saturate(6); /* Kırmızı hasar efekti */
+  }
+  100% {
+    filter: none; /* Normal hale dön */
+  }
+}
+
 canvas {
   position: fixed;
   top: 0;
@@ -69,4 +81,8 @@ canvas {
 .fade-out {
   animation: fade-out 2s ease-out forwards; /* 2 saniye içinde kaybolur */
   transform-origin: center;
+}
+
+.damage-effect {
+  animation: damage-effect 0.3s ease-in-out; /* 0.3 saniye hasar efekti */
 }

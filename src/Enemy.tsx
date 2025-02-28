@@ -1,21 +1,23 @@
 import React from "react";
 
 interface EnemyProps {
-  enemy: { id: number; x: number; y: number; hits: number; image: string; isBoss?: boolean; hp?: number };
+  enemy: { id: number; x: number; y: number; hits: number; image: string; isBoss?: boolean; hp?: number; rotation?: number };
   isFading: boolean;
+  isDamaged?: boolean; // Hasar alma efekti için
 }
 
-const Enemy: React.FC<EnemyProps> = ({ enemy, isFading }) => {
+const Enemy: React.FC<EnemyProps> = ({ enemy, isFading, isDamaged }) => {
   const size = enemy.isBoss ? 200 : 30; // Final boss boyutunu 2 katına çıkardık (200px)
   return (
     <div
-      className={`absolute ${isFading ? "fade-out" : ""}`}
+      className={`absolute ${isFading ? "fade-out" : ""} ${isDamaged ? "damage-effect" : ""}`}
       style={{
         left: `${enemy.x}px`,
         top: `${enemy.y}px`,
         width: `${size}px`,
         height: `${size}px`,
-        transform: "translate(-50%, -50%)",
+        transform: `translate(-50%, -50%) rotate(${enemy.rotation || 0}deg)`, // Dönme animasyonu
+        transition: "transform 0.5s ease-in-out", // Smooth geçiş
       }}
     >
       <img

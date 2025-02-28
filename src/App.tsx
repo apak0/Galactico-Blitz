@@ -16,6 +16,7 @@ interface Enemy extends Position {
   image: string;
   isBoss?: boolean; // Final boss'u belirlemek için
   hp?: number; // Boss'un canını takip etmek için
+  rotation?: number; // Boss’un dönme açısını takip etmek için
 }
 
 interface Bullet extends Position {
@@ -113,7 +114,7 @@ function App() {
   });
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
-  const [score, setScore] = useState(0);
+  const [score, setScore] = useState(1000);
   const [gameOver, setGameOver] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
   const [scoreAnimations, setScoreAnimations] = useState<ScoreAnimation[]>([]);
@@ -124,6 +125,7 @@ function App() {
   const [bossHP, setBossHP] = useState(100); // Final boss’un HP’si (100’e artırıldı)
   const [isBossExploding, setIsBossExploding] = useState(false); // Boss patlama durumu
   const [gameWon, setGameWon] = useState(false); // Oyunu kazandık mı?
+  const [bossDamageEffect, setBossDamageEffect] = useState(false); // Boss hasar alma efekti
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const animationFrameId = useRef<number>();
@@ -235,7 +237,7 @@ function App() {
         prev
           .map((b) => ({
             ...b,
-            y: b.isBossBullet ? b.y + (2 / 0.016) * deltaTime : b.y - (5 / 0.016) * deltaTime, // Boss mermileri aşağı (hız 2 katına çıkarıldı), ship mermileri yukarı
+            y: b.isBossBullet ? b.y + (2 / 0.016) * deltaTime : b.y - (5 / 0.016) * deltaTime, // Boss mermileri aşağı, ship mermileri yukarı
           }))
           .filter((b) => b.y > 0 && b.y < window.innerHeight)
       );
@@ -342,30 +344,34 @@ function App() {
           image: "/assets/final-boss.png",
           isBoss: true,
           hp: 100, // Başlangıç HP’si (100’e artırıldı)
+          rotation: 0, // Başlangıçta 0 derece (düz pozisyon)
         });
       }
 
-      // Final boss’un smooth ve sürekli hareketi (sağa sola, sınırda yön değiştirme)
+      // Final boss’un smooth ve sürekli hareketi (sağa sola, duvar çarpmasından bağımsız rotasyon)
       if (finalBoss && !isBossExploding) {
         setFinalBoss((prev) => {
           if (!prev) return null;
           const moveSpeed = 12 / 0.016; // Boss’un hareket hızı (senin belirttiğin gibi)
-          let direction = prev.direction || (Math.random() < 0.5 ? -1 : 1); // Varsayılan yön
+          let direction = prev.direction || (Math.random() < 0.5 ? 1 : -1); // Varsayılan yön (sağa veya sola)
           const currentTime = Date.now();
 
-          // Ekran sınırlarına çarptığında yönü tersine çevir
+          // Ekran sınırlarına çarptığında yalnızca hareket yönünü tersine çevir (rotasyon bağımsız)
           const newX = Math.max(50, Math.min(window.innerWidth - 50, prev.x + moveSpeed * direction * deltaTime));
           if (newX === 50 || newX === window.innerWidth - 50) {
-            direction *= -1; // Sınırda yönü tersine çevir
+            direction *= -1; // Sınırda hareket yönünü tersine çevir, rotasyonu etkileme
           }
 
-          // 2 saniyede bir rastgele yön değiştir (sınır kontrolünden bağımsız)
+          // 2 saniyede bir rastgele yön ve rotasyon değiştir (duvar çarpmasından bağımsız)
           if (currentTime - lastDirectionChange.current >= 2000) {
-            direction = Math.random() < 0.5 ? -1 : 1; // Yeni yön
+            direction = Math.random() < 0.5 ? 1 : -1; // Yeni hareket yönü (sağa veya sola)
             lastDirectionChange.current = currentTime;
           }
 
-          return { ...prev, x: newX, y: 150, direction }; // Y koordinatı sabit 150, yön güncellendi
+          // Yöne göre rotasyonu ayarla (sağa +30, sola -30 derece, duvar çarpmasından bağımsız)
+          const rotation = direction === 1 ? 30 : -30; // Sola -30, sağa +30 derece
+
+          return { ...prev, x: newX, y: 150, direction, rotation }; // Y koordinatı sabit 150, yön ve rotasyon güncellendi
         });
       }
 
@@ -405,12 +411,12 @@ function App() {
         }).filter((bullet) => bullet !== null) as Bullet[]
       );
 
-      // Mermilerle boss çarpışması ve HP azaltma
+      // Mermilerle boss çarpışması ve HP azaltma (hasar efekti ekleme)
       if (finalBoss && !isBossExploding) {
         setBullets((prevBullets) => {
           const bulletsCopy = [...prevBullets];
           bulletsCopy.forEach((bullet, bIndex) => {
-            if (!bullet.isBossBullet && finalBoss) {
+            if (!bullet.isBossBullet && finalBoss) { // Ship mermisi boss’a çarptığında
               if (
                 Math.abs(bullet.x - finalBoss.x) < 50 && // Boss’un genişliği için 50
                 Math.abs(bullet.y - finalBoss.y) < 50
@@ -429,6 +435,9 @@ function App() {
                       setFadingEntities((prev) => prev.filter((fe) => fe.id !== finalBoss.id.toString()));
                     }, 2000); // Boss 2 saniye içinde kaybolur
                   }
+                  // Hasar alma efekti ekle
+                  setBossDamageEffect(true);
+                  setTimeout(() => setBossDamageEffect(false), 300); // 0.3 saniye sonra normale dön
                   return newHP;
                 });
               }
@@ -564,7 +573,7 @@ function App() {
         Time: {timeLeft}s
       </div>
       <div className="absolute top-0 right-0 text-white text-sm font-normal">
-        v3.2
+        v1.0
       </div>
       {finalBoss && !isBossExploding && (
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-white text-xl font-bold">
@@ -650,6 +659,7 @@ function App() {
           key={finalBoss.id}
           enemy={finalBoss}
           isFading={false}
+          isDamaged={bossDamageEffect} // Hasar efekti için prop
         />
       )}
       {bullets.map((bullet) => (
