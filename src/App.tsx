@@ -114,7 +114,7 @@ function App() {
   });
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
-  const [score, setScore] = useState(1000);
+  const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
   const [scoreAnimations, setScoreAnimations] = useState<ScoreAnimation[]>([]);
