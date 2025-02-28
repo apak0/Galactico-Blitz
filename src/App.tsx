@@ -323,9 +323,9 @@ function App() {
                 // Puanları düşman görseline göre ayarla (çarpma olmadan)
                 let scoreIncrease = 20;
                 if (enemy.image === "/assets/enemy-2.png") {
-                  scoreIncrease = 15;
+                  scoreIncrease = 30;
                 } else if (enemy.image === "/assets/enemy-3.png") {
-                  scoreIncrease = 20;
+                  scoreIncrease = 40;
                 }
                 setScore((s) => {
                   const newScore = s + scoreIncrease;
