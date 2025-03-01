@@ -21,7 +21,7 @@ const Bullet: React.FC<BulletProps> = ({ bullet }) => {
         width: bullet.isBossBullet ? "5px" : bullet.isNeon ? "5px" : "10px",
         height: bullet.isBossBullet ? "20px" : bullet.isNeon ? "20px" : "10px",
         backgroundColor: bullet.isBossBullet
-          ? "#1E90FF" // Neon lacivert (boss mermisi)
+          ? "#E100FF" // Neon lacivert (boss mermisi)
           : bullet.isNeon
           ? "#00FFFF"
           : bullet.isRedNeon
@@ -29,7 +29,7 @@ const Bullet: React.FC<BulletProps> = ({ bullet }) => {
           : "#FACC15",
         borderRadius: bullet.isBossBullet || bullet.isNeon ? "0" : "50%",
         boxShadow: bullet.isBossBullet
-          ? "0 0 10px #1E90FF, 0 0 20px #1E90FF" // Neon lacivert efekt
+          ? "0 0 10px #E2E2E2, 0 0 20px #E2E2E2" // Neon lacivert efekt
           : bullet.isNeon
           ? "0 0 10px #00FFFF, 0 0 20px #00FFFF"
           : bullet.isRedNeon
