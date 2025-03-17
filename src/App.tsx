@@ -48,15 +48,15 @@ interface FadingEntity {
 const getShipSize = (score: number) =>
   Math.min(window.innerWidth, window.innerHeight) >= 1000
     ? score >= 1000
-      ? 180
+      ? 240 // Increased size
       : score >= 500
-      ? 120
-      : 60
+      ? 160 // Increased size
+      : 80 // Increased size
     : score >= 1000
-    ? 90
+    ? 120 // Increased size
     : score >= 500
-    ? 60
-    : 30; // Mobil cihazlar için boyutları küçülttüm
+    ? 80 // Increased size
+    : 80; // Increased size
 
 const useStarfield = (canvasId: string) => {
   useEffect(() => {
@@ -534,7 +534,6 @@ function App() {
                 !fadingEntities.some((fe) => fe.id === enemy.id.toString()) &&
                 !bullet.isBossBullet
               ) {
-               
                 const collisionId = generateUniqueId();
                 bulletsCopy.splice(bIndex, 1);
                 setCollisionEffects((prev) => [
@@ -595,7 +594,7 @@ function App() {
               0
             );
             const newScore = prevScore + totalIncrease;
-            
+
             return newScore;
           });
           setScoreAnimations((prev) => [
@@ -676,8 +675,6 @@ function App() {
     setControlType(isMobile ? "mouse" : null); // Mobilde otomatik olarak "mouse" kontrolü seçilir
     setIsModalOpen(false);
   };
-
-  
 
   return (
     <div className="relative w-screen h-screen bg-black overflow-hidden">
