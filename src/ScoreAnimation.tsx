@@ -6,7 +6,7 @@ interface ScoreAnimationProps {
 }
 
 const ScoreAnimation: React.FC<ScoreAnimationProps> = ({ animation }) => {
-  console.log("Rendering Score Animation:", animation); // Debug log ekle
+  console.log("Rendering Score Animation:", animation); 
   return (
     <div
       key={animation.id}
@@ -20,8 +20,8 @@ const ScoreAnimation: React.FC<ScoreAnimationProps> = ({ animation }) => {
         animation: "fadeOut 1s linear forwards",
       }}
     >
-      {animation.value > 0 ? "+" : ""}
-      {animation.value}
+      {animation.value> 0 ? "+" : ""}
+      {animation.value *2}
     </div>
   );
 };

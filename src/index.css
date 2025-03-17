@@ -86,3 +86,7 @@ canvas {
 .damage-effect {
   animation: damage-effect 0.3s ease-in-out; /* 0.3 saniye hasar efekti */
 }
+
+.bg-gray-800 {
+  background-color: rgba(31, 41, 55, 1);
+}
