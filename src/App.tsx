@@ -534,9 +534,7 @@ function App() {
                 !fadingEntities.some((fe) => fe.id === enemy.id.toString()) &&
                 !bullet.isBossBullet
               ) {
-                console.log(
-                  `Enemy hit: ${enemy.image} at (${enemy.x}, ${enemy.y})`
-                );
+               
                 const collisionId = generateUniqueId();
                 bulletsCopy.splice(bIndex, 1);
                 setCollisionEffects((prev) => [
@@ -597,9 +595,7 @@ function App() {
               0
             );
             const newScore = prevScore + totalIncrease;
-            console.log(
-              `Total Score Increase: ${totalIncrease}, New Score: ${newScore}`
-            );
+            
             return newScore;
           });
           setScoreAnimations((prev) => [
@@ -681,7 +677,7 @@ function App() {
     setIsModalOpen(false);
   };
 
-  console.log("Current score:", score);
+  
 
   return (
     <div className="relative w-screen h-screen bg-black overflow-hidden">

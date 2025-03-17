@@ -6,7 +6,7 @@ interface ScoreAnimationProps {
 }
 
 const ScoreAnimation: React.FC<ScoreAnimationProps> = ({ animation }) => {
-  console.log("Rendering Score Animation:", animation); 
+  
   return (
     <div
       key={animation.id}
