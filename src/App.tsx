@@ -46,7 +46,17 @@ interface FadingEntity {
 }
 
 const getShipSize = (score: number) =>
-  score >= 1000 ? 180 : score >= 500 ? 120 : 60;
+  Math.min(window.innerWidth, window.innerHeight) >= 1000
+    ? score >= 1000
+      ? 180
+      : score >= 500
+      ? 120
+      : 60
+    : score >= 1000
+    ? 90
+    : score >= 500
+    ? 60
+    : 30; // Mobil cihazlar için boyutları küçülttüm
 
 const useStarfield = (canvasId: string) => {
   useEffect(() => {
@@ -117,14 +127,18 @@ function App() {
   const [timeLeft, setTimeLeft] = useState(120);
   const [scoreAnimations, setScoreAnimations] = useState<ScoreAnimation[]>([]);
   const [isScoreDecreasing, setIsScoreDecreasing] = useState(false);
-  const [collisionEffects, setCollisionEffects] = useState<CollisionEffect[]>([]);
+  const [collisionEffects, setCollisionEffects] = useState<CollisionEffect[]>(
+    []
+  );
   const [fadingEntities, setFadingEntities] = useState<FadingEntity[]>([]);
   const [finalBoss, setFinalBoss] = useState<Enemy | null>(null);
   const [bossHP, setBossHP] = useState(100);
   const [isBossExploding, setIsBossExploding] = useState(false);
   const [gameWon, setGameWon] = useState(false);
   const [bossDamageEffect, setBossDamageEffect] = useState(false);
-  const [controlType, setControlType] = useState<"keyboard" | "mouse" | null>(null);
+  const [controlType, setControlType] = useState<"keyboard" | "mouse" | null>(
+    null
+  );
   const [isModalOpen, setIsModalOpen] = useState(true);
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
@@ -186,12 +200,50 @@ function App() {
   const handleMouseMove = useCallback(
     (event: MouseEvent) => {
       if (controlType !== "mouse" || gameOver || gameWon) return;
-      const newX = Math.max(30, Math.min(window.innerWidth - 30, event.clientX));
-      const newY = Math.max(30, Math.min(window.innerHeight - getShipSize(score), event.clientY));
+      const newX = Math.max(
+        30,
+        Math.min(window.innerWidth - 30, event.clientX)
+      );
+      const newY = Math.max(
+        30,
+        Math.min(window.innerHeight - getShipSize(score), event.clientY)
+      );
       setShipPosition({ x: newX, y: newY });
     },
     [controlType, gameOver, gameWon, score]
   );
+
+  const handleTouchMove = useCallback(
+    (event: TouchEvent) => {
+      if (controlType !== "mouse" || gameOver || gameWon) return;
+      const touch = event.touches[0];
+      const newX = Math.max(
+        30,
+        Math.min(window.innerWidth - 30, touch.clientX)
+      );
+      const newY = Math.max(
+        30,
+        Math.min(window.innerHeight - getShipSize(score), touch.clientY)
+      );
+      setShipPosition({ x: newX, y: newY });
+    },
+    [controlType, gameOver, gameWon, score]
+  );
+
+  const handleTouchStart = useCallback(() => {
+    if (controlType === "mouse" && !gameOver && !gameWon) {
+      shoot();
+    }
+  }, [controlType, gameOver, gameWon, shoot]);
+
+  useEffect(() => {
+    window.addEventListener("touchmove", handleTouchMove);
+    window.addEventListener("touchstart", handleTouchStart);
+    return () => {
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchstart", handleTouchStart);
+    };
+  }, [handleTouchMove, handleTouchStart]);
 
   useStarfield("field");
 
@@ -220,13 +272,19 @@ function App() {
             newX = Math.max(30, prev.x - moveSpeed * deltaTime);
           }
           if (keysPressed.current["ArrowRight"]) {
-            newX = Math.min(window.innerWidth - 30, prev.x + moveSpeed * deltaTime);
+            newX = Math.min(
+              window.innerWidth - 30,
+              prev.x + moveSpeed * deltaTime
+            );
           }
           if (keysPressed.current["ArrowUp"]) {
             newY = Math.max(30, prev.y - moveSpeed * deltaTime);
           }
           if (keysPressed.current["ArrowDown"]) {
-            newY = Math.min(window.innerHeight - getShipSize(score), prev.y + moveSpeed * deltaTime);
+            newY = Math.min(
+              window.innerHeight - getShipSize(score),
+              prev.y + moveSpeed * deltaTime
+            );
           }
 
           return { x: newX, y: newY };
@@ -246,7 +304,9 @@ function App() {
         prev
           .map((b) => ({
             ...b,
-            y: b.isBossBullet ? b.y + (2 / 0.016) * deltaTime : b.y - (5 / 0.016) * deltaTime,
+            y: b.isBossBullet
+              ? b.y + (2 / 0.016) * deltaTime
+              : b.y - (5 / 0.016) * deltaTime,
           }))
           .filter((b) => b.y > 0 && b.y < window.innerHeight)
       );
@@ -304,7 +364,9 @@ function App() {
                 { type: "enemy", x: e.x, y: e.y, id: e.id.toString() },
               ]);
               setTimeout(() => {
-                setCollisionEffects((prev) => prev.filter((ce) => ce.id !== collisionId));
+                setCollisionEffects((prev) =>
+                  prev.filter((ce) => ce.id !== collisionId)
+                );
                 setGameOver(true);
               }, 1000);
               return true;
@@ -324,7 +386,8 @@ function App() {
               enemyImage = "/assets/enemy-3.png";
             }
           } else if (score >= 250) {
-            enemyImage = Math.random() < 0.5 ? "/assets/enemy.png" : "/assets/enemy-2.png";
+            enemyImage =
+              Math.random() < 0.5 ? "/assets/enemy.png" : "/assets/enemy-2.png";
           } else {
             enemyImage = "/assets/enemy.png";
           }
@@ -359,7 +422,13 @@ function App() {
           let direction = prev.direction || (Math.random() < 0.5 ? 1 : -1);
           const currentTime = Date.now();
 
-          const newX = Math.max(50, Math.min(window.innerWidth - 50, prev.x + moveSpeed * direction * deltaTime));
+          const newX = Math.max(
+            50,
+            Math.min(
+              window.innerWidth - 50,
+              prev.x + moveSpeed * direction * deltaTime
+            )
+          );
           if (newX === 50 || newX === window.innerWidth - 50) {
             direction *= -1;
           }
@@ -391,21 +460,24 @@ function App() {
         }
       }
 
-      setBullets((prev) =>
-        prev.map((bullet) => {
-          if (bullet.isBossBullet) {
-            const shipSize = getShipSize(score);
-            if (
-              Math.abs(bullet.x - shipPosition.x) <= shipSize / 2 + 10 &&
-              Math.abs(bullet.y - shipPosition.y) <= shipSize / 2 + 10 &&
-              !fadingEntities.some((fe) => fe.type === "ship")
-            ) {
-              setGameOver(true);
-              return null;
-            }
-          }
-          return bullet;
-        }).filter((bullet) => bullet !== null) as Bullet[]
+      setBullets(
+        (prev) =>
+          prev
+            .map((bullet) => {
+              if (bullet.isBossBullet) {
+                const shipSize = getShipSize(score);
+                if (
+                  Math.abs(bullet.x - shipPosition.x) <= shipSize / 2 + 10 &&
+                  Math.abs(bullet.y - shipPosition.y) <= shipSize / 2 + 10 &&
+                  !fadingEntities.some((fe) => fe.type === "ship")
+                ) {
+                  setGameOver(true);
+                  return null;
+                }
+              }
+              return bullet;
+            })
+            .filter((bullet) => bullet !== null) as Bullet[]
       );
 
       if (finalBoss && !isBossExploding) {
@@ -428,7 +500,9 @@ function App() {
                       setGameWon(true);
                     }, 3000);
                     setTimeout(() => {
-                      setFadingEntities((prev) => prev.filter((fe) => fe.id !== finalBoss.id.toString()));
+                      setFadingEntities((prev) =>
+                        prev.filter((fe) => fe.id !== finalBoss.id.toString())
+                      );
                     }, 2000);
                   }
                   setBossDamageEffect(true);
@@ -460,7 +534,9 @@ function App() {
                 !fadingEntities.some((fe) => fe.id === enemy.id.toString()) &&
                 !bullet.isBossBullet
               ) {
-                console.log(`Enemy hit: ${enemy.image} at (${enemy.x}, ${enemy.y})`);
+                console.log(
+                  `Enemy hit: ${enemy.image} at (${enemy.x}, ${enemy.y})`
+                );
                 const collisionId = generateUniqueId();
                 bulletsCopy.splice(bIndex, 1);
                 setCollisionEffects((prev) => [
@@ -469,7 +545,12 @@ function App() {
                 ]);
                 setFadingEntities((prev) => [
                   ...prev,
-                  { type: "enemy", x: enemy.x, y: enemy.y, id: enemy.id.toString() },
+                  {
+                    type: "enemy",
+                    x: enemy.x,
+                    y: enemy.y,
+                    id: enemy.id.toString(),
+                  },
                 ]);
 
                 let scoreIncrease = 10;
@@ -496,20 +577,29 @@ function App() {
 
                 enemiesCopy.splice(eIndex, 1); // Düşmanı listeden kaldır
                 setTimeout(() => {
-                  setCollisionEffects((prev) => prev.filter((ce) => ce.id !== collisionId));
+                  setCollisionEffects((prev) =>
+                    prev.filter((ce) => ce.id !== collisionId)
+                  );
                 }, 1000);
                 break;
               }
             }
           }
-          return enemiesCopy.filter((enemy) => !enemiesToRemove.includes(enemy.id));
+          return enemiesCopy.filter(
+            (enemy) => !enemiesToRemove.includes(enemy.id)
+          );
         });
 
         if (scoreUpdates.length > 0) {
           setScore((prevScore) => {
-            const totalIncrease = scoreUpdates.reduce((sum, update) => sum + update.increase, 0);
+            const totalIncrease = scoreUpdates.reduce(
+              (sum, update) => sum + update.increase,
+              0
+            );
             const newScore = prevScore + totalIncrease;
-            console.log(`Total Score Increase: ${totalIncrease}, New Score: ${newScore}`);
+            console.log(
+              `Total Score Increase: ${totalIncrease}, New Score: ${newScore}`
+            );
             return newScore;
           });
           setScoreAnimations((prev) => [
@@ -536,7 +626,8 @@ function App() {
     animationFrameId.current = requestAnimationFrame(gameLoop);
 
     return () => {
-      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+      if (animationFrameId.current)
+        cancelAnimationFrame(animationFrameId.current);
     };
   }, [
     gameOver,
@@ -583,6 +674,13 @@ function App() {
     setIsModalOpen(false);
   };
 
+  const isMobile = Math.min(window.innerWidth, window.innerHeight) < 768;
+
+  const handleStartGame = () => {
+    setControlType(isMobile ? "mouse" : null); // Mobilde otomatik olarak "mouse" kontrolü seçilir
+    setIsModalOpen(false);
+  };
+
   console.log("Current score:", score);
 
   return (
@@ -590,21 +688,35 @@ function App() {
       {isModalOpen && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50">
           <div className="bg-gray-800 p-6 rounded-lg text-white text-center">
-            <h2 className="text-3xl font-bold mb-4">Select Control Type</h2>
-            <div className="flex space-x-4 justify-center">
-              <button
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded"
-                onClick={() => handleControlSelect("keyboard")}
-              >
-                Keyboard Control
-              </button>
-              <button
-                className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded"
-                onClick={() => handleControlSelect("mouse")}
-              >
-                Mouse Control
-              </button>
-            </div>
+            {isMobile ? (
+              <>
+                <h2 className="text-3xl font-bold mb-4">Start Game</h2>
+                <button
+                  className="px-6 py-3 bg-green-500 hover:bg-green-600 rounded text-xl"
+                  onClick={handleStartGame}
+                >
+                  Start
+                </button>
+              </>
+            ) : (
+              <>
+                <h2 className="text-3xl font-bold mb-4">Select Control Type</h2>
+                <div className="flex space-x-4 justify-center">
+                  <button
+                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded"
+                    onClick={() => handleControlSelect("keyboard")}
+                  >
+                    Keyboard Control
+                  </button>
+                  <button
+                    className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded"
+                    onClick={() => handleControlSelect("mouse")}
+                  >
+                    Mouse Control
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -629,11 +741,19 @@ function App() {
           >
             Score: {score}
             <div className="flex items-center space-x-2 mt-2">
-              <img src={getShipImage()} alt="Current Ship" className="w-6 h-6" />
+              <img
+                src={getShipImage()}
+                alt="Current Ship"
+                className="w-6 h-6"
+              />
               {getNextShipImage() && (
                 <>
                   <span className="text-yellow-500 text-xl">→</span>
-                  <img src={getNextShipImage()} alt="Next Ship" className="w-6 h-6" />
+                  <img
+                    src={getNextShipImage()}
+                    alt="Next Ship"
+                    className="w-6 h-6"
+                  />
                 </>
               )}
             </div>
@@ -693,7 +813,9 @@ function App() {
             <Enemy
               key={enemy.id}
               enemy={enemy}
-              isFading={fadingEntities.some((fe) => fe.id === enemy.id.toString())}
+              isFading={fadingEntities.some(
+                (fe) => fe.id === enemy.id.toString()
+              )}
             />
           ))}
           {finalBoss && !isBossExploding && (
