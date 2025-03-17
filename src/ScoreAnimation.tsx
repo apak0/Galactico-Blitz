@@ -21,7 +21,7 @@ const ScoreAnimation: React.FC<ScoreAnimationProps> = ({ animation }) => {
       }}
     >
       {animation.value> 0 ? "+" : ""}
-      {animation.value *2}
+      {animation.value}
     </div>
   );
 };
